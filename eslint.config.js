@@ -21,7 +21,11 @@ export default [
         ResizeObserver: 'readonly',
         performance: 'readonly',
         Image: 'readonly',
-        FormData: 'readonly'
+        FormData: 'readonly',
+        CustomEvent: 'readonly',
+        URLSearchParams: 'readonly',
+        HTMLAnchorElement: 'readonly',
+        HTMLDialogElement: 'readonly'
       }
     },
     rules: {

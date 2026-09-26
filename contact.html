@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080b09" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='16' fill='%23080b09'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='Arial' font-size='13' fill='%23d6a44b'%3EUF%3C/text%3E%3C/svg%3E" />
+    <meta name="description" content="Contact Uppalapati Farms on WhatsApp, by phone, or visit the farm." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <title>Contact — Uppalapati Farms</title>
+  </head>
+  <body class="page-body" data-page="contact">
+    <header class="site-header" data-site-header data-header-overlay="false">
+      <div class="site-header__inner">
+        <a class="site-header__brand" href="/">Uppalapati Farms</a>
+        <nav class="site-header__nav" id="site-nav" data-site-nav aria-label="Primary">
+          <a href="/product.html">Shop</a>
+          <a href="/about.html">Our Farm</a>
+          <a href="/faq.html">FAQ</a>
+          <a href="/contact.html" aria-current="page">Contact</a>
+        </nav>
+        <div class="site-header__actions">
+          <a class="cart-link" href="/#shop" data-cart-link aria-label="Cart is empty">
+            Cart
+            <span class="cart-link__badge" data-cart-badge hidden>0</span>
+          </a>
+          <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-label="Open menu" aria-controls="site-nav">
+            <span></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="page-hero">
+        <p class="page-hero__eyebrow">Contact</p>
+        <h1>Talk to the farm.</h1>
+        <p class="page-hero__lead">The quickest way to reach us is WhatsApp — it goes straight to the person who makes the ghee, not to a call centre.</p>
+      </section>
+
+      <section class="band">
+        <div class="split">
+          <div>
+            <p class="band__eyebrow">Send a message</p>
+            <h2 class="band__title">Tell us what you need.</h2>
+            <p class="band__lead">Fill this in and it opens WhatsApp with your message already written. You just press send.</p>
+
+            <form class="form-grid" data-contact-form novalidate>
+              <label for="contact-name">Full name
+                <input id="contact-name" name="name" type="text" autocomplete="name" minlength="2" maxlength="80" required />
+              </label>
+              <label for="contact-mobile">Mobile number
+                <input id="contact-mobile" name="mobile" type="tel" autocomplete="tel" inputmode="numeric" pattern="[6-9][0-9]{9}" minlength="10" maxlength="10" title="Enter a valid 10-digit Indian mobile number" required />
+              </label>
+              <label for="contact-email">Email <span>(optional)</span>
+                <input id="contact-email" name="email" type="email" autocomplete="email" maxlength="120" />
+              </label>
+              <label for="contact-subject">Subject
+                <select id="contact-subject" name="subject">
+                  <option>General enquiry</option>
+                  <option>Order enquiry</option>
+                  <option>Delivery and pincode</option>
+                  <option>Wholesale or bulk</option>
+                  <option>Site feedback</option>
+                </select>
+              </label>
+              <label class="form-grid__wide" for="contact-message">Message
+                <textarea id="contact-message" name="message" rows="5" minlength="5" maxlength="800" placeholder="Which jar size are you interested in, and which PIN code should we deliver to?" required></textarea>
+              </label>
+
+              <div class="form-grid__wide form-actions">
+                <button class="checkout-button" type="submit" data-contact-submit>Send on WhatsApp</button>
+                <p class="form-note">Nothing is stored on this website. Your message is handed to WhatsApp for you to send.</p>
+              </div>
+              <p class="form-grid__wide form-status" data-contact-status aria-live="polite"></p>
+            </form>
+          </div>
+
+          <div>
+            <p class="band__eyebrow">Other ways to reach us</p>
+            <h2 class="band__title">Direct details</h2>
+            <dl class="detail-list" style="margin-top: 30px">
+              <div>
+                <dt>WhatsApp</dt>
+                <dd><a href="#" data-whatsapp-link data-business-phone>+91 90000 00000</a></dd>
+              </div>
+              <div>
+                <dt>Phone</dt>
+                <dd><a href="#" data-business-phone>+91 90000 00000</a></dd>
+              </div>
+              <div>
+                <dt>Email</dt>
+                <dd><a href="#" data-business-email>hello@uppalapatifarms.example</a></dd>
+              </div>
+              <div>
+                <dt>Farm address</dt>
+                <dd data-business-address>Uppalapati Farms, Kakinada Road, Andhra Pradesh 533001</dd>
+              </div>
+              <div>
+                <dt>Open</dt>
+                <dd data-business-hours>Monday to Saturday, 9am – 7pm IST</dd>
+              </div>
+              <div>
+                <dt>FSSAI licence</dt>
+                <dd data-business-fssai>Licence pending</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band--soft" aria-labelledby="contact-visit">
+        <p class="band__eyebrow">Visit</p>
+        <h2 class="band__title" id="contact-visit">Come to the farm.</h2>
+        <div class="split" style="margin-top: 34px">
+          <div class="prose">
+            <p>Anyone is welcome to see the herd and the churning room, but please message ahead so someone is free to walk you through. The farm is a working one, so boots are a good idea.</p>
+            <p>We are on the Kakinada Road, about an hour from Rajahmundry. Exact directions are shared once you confirm a visiting time.</p>
+          </div>
+          <div class="prose">
+            <p>For wholesale or bulk orders, mention it in your message and we will connect you with the person who handles larger volumes.</p>
+            <p>Everything on this site is currently a design demo. Placeholder contact details will be replaced with the live business details before launch.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="site-footer__grid">
+        <div>
+          <p class="site-footer__brand">Uppalapati Farms</p>
+          <p class="site-footer__blurb">Small-batch traditional ghee, slow-churned on our own farm and packed for the everyday table.</p>
+        </div>
+        <div>
+          <h3>Shop</h3>
+          <ul>
+            <li><a href="/product.html?size=one-litre">1 Litre family jar</a></li>
+            <li><a href="/product.html?size=half-litre">500 ml everyday jar</a></li>
+            <li><a href="/#shop">All products</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Company</h3>
+          <ul>
+            <li><a href="/about.html">Our farm</a></li>
+            <li><a href="/faq.html">FAQ</a></li>
+            <li><a href="/contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Reach us</h3>
+          <ul>
+            <li><a href="#" data-whatsapp-link>WhatsApp</a></li>
+            <li><a href="#" data-business-email>Email</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="site-footer__bar">
+        <span>© <span data-year>2026</span> Uppalapati Farms. Design demo.</span>
+        <span class="demo-tag">Demo build</span>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/contact.js"></script>
+    <script type="module" src="/src/site.js"></script>
+  </body>
+</html>

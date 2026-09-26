@@ -337,6 +337,7 @@ function setReducedMotion() {
 function saveCart() {
   try {
     window.localStorage.setItem(cartStorageKey, JSON.stringify(cart));
+    window.dispatchEvent(new CustomEvent('cart:updated'));
   } catch {
     cart = readCart();
   }
