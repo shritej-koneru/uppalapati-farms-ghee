@@ -6,7 +6,7 @@ export const products = {
   'half-litre': {
     name: 'Half-litre ghee',
     size: '500 ml',
-    price: 699,
+    price: 2000,
     image: '/media/ghee-jar-100ml.jpg',
     art: 'bottle-500',
     label: 'Everyday jar',
@@ -22,7 +22,7 @@ export const products = {
   'one-litre': {
     name: 'One-litre ghee',
     size: '1 L',
-    price: 1299,
+    price: 4000,
     image: '/media/ghee-jar-500ml.jpg',
     art: 'bottle-1000',
     label: 'Family pack',
