@@ -478,7 +478,7 @@ cartDialog.addEventListener('click', (event) => {
 
 jarVideo.loop = true;
 if (!jarVideo.querySelector('source')) {
-  jarVideo.src = '/media/jar-360.mp4';
+  jarVideo.src = '/media/jar-360.webm';
   jarVideo.load();
 }
 selectVideoSource();
