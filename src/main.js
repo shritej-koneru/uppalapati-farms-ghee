@@ -198,7 +198,9 @@ function updateProductStage() {
   productStage.classList.toggle('options-visible', optionsProgress > 0.001);
   const rect = productStage.getBoundingClientRect();
   const stageNear = rect.bottom > -window.innerHeight * 0.5 && rect.top < window.innerHeight * 1.5;
-  jarShouldPlay = jarReady && !isReducedMotion && revealProgress > 0.001 && stageNear;
+  // Deliberately not gated on revealProgress: that is the fly-in animation, and
+  // it is still 0 where the jar is first framed, which froze it on frame 0.
+  jarShouldPlay = jarReady && !isReducedMotion && stageNear;
 }
 
 /* ---------- Jar playback helpers ---------- */
