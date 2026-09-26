@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.vercel/
+
+# local tooling scratch dirs
+.playwright-mcp/
+artifacts/
+backups/
+.freebuff/
+
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example

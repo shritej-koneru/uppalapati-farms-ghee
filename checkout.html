@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080b09" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='16' fill='%23080b09'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='Arial' font-size='13' fill='%23d6a44b'%3EUF%3C/text%3E%3C/svg%3E" />
+    <meta name="description" content="Complete a test-only Uppalapati Farms ghee order. No payment is collected." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <title>Test checkout — Uppalapati Farms</title>
+  </head>
+  <body class="checkout">
+    <main class="checkout-page">
+      <header class="checkout-page__header">
+        <a class="checkout-page__brand" href="/#top">Uppalapati Farms</a>
+        <a class="checkout-back" href="/#shop">Back to the shop <span aria-hidden="true">↗</span></a>
+      </header>
+
+      <div data-checkout-content>
+        <section class="checkout-intro" aria-labelledby="checkout-title">
+          <h1 id="checkout-title">Test checkout.</h1>
+          <p><strong>No payment is collected.</strong> This form stays in your browser, and no order information is sent to a server.</p>
+        </section>
+
+        <div class="checkout-layout">
+          <section class="checkout-summary" aria-labelledby="checkout-summary-title">
+            <p class="checkout-summary__label" id="checkout-summary-title">Selected products</p>
+            <div class="checkout-summary__items" data-checkout-items></div>
+            <p class="checkout-summary__empty" data-checkout-empty hidden>Your cart is empty. Return to the shop to choose a jar.</p>
+            <div class="checkout-summary__total"><span>Total</span><strong data-checkout-total>₹0</strong></div>
+          </section>
+
+          <section data-checkout-details aria-labelledby="delivery-title">
+            <h2 class="sr-only" id="delivery-title">Delivery details</h2>
+            <form class="checkout-form" data-checkout-form>
+              <label class="checkout-form__wide" for="full-name">Full name
+                <input id="full-name" name="fullName" type="text" autocomplete="name" minlength="2" maxlength="80" required />
+              </label>
+              <label for="mobile">Mobile number
+                <input id="mobile" name="mobile" type="tel" autocomplete="tel" inputmode="numeric" pattern="[6-9][0-9]{9}" minlength="10" maxlength="10" title="Enter a valid 10-digit Indian mobile number" required />
+              </label>
+              <label for="email">Email <span aria-hidden="true">(optional)</span>
+                <input id="email" name="email" type="email" autocomplete="email" maxlength="120" />
+              </label>
+              <label class="checkout-form__wide" for="address">Delivery address
+                <textarea id="address" name="address" autocomplete="street-address" rows="4" minlength="8" maxlength="240" required></textarea>
+              </label>
+              <label for="city">City
+                <input id="city" name="city" type="text" autocomplete="address-level2" minlength="2" maxlength="80" required />
+              </label>
+              <label for="state">State
+                <input id="state" name="state" type="text" autocomplete="address-level1" minlength="2" maxlength="80" required />
+              </label>
+              <label for="pincode">PIN code
+                <input id="pincode" name="pincode" type="text" autocomplete="postal-code" inputmode="numeric" pattern="[1-9][0-9]{5}" minlength="6" maxlength="6" title="Enter a valid 6-digit PIN code" required />
+              </label>
+              <p class="checkout-form__note" id="checkout-note">Test only. No payment field is provided, and submitting does not place a paid order.</p>
+              <button class="checkout-button checkout-form__submit" type="submit" data-checkout-submit>Note test order</button>
+              <p class="checkout-form__status" data-checkout-status aria-live="polite"></p>
+            </form>
+          </section>
+        </div>
+      </div>
+
+      <section class="checkout-confirmation" data-checkout-confirmation role="status" tabindex="-1" hidden>
+        <h2>Order noted.</h2>
+        <p>Thanks, your test order is noted. We’ll contact you shortly.</p>
+        <p>No payment was collected and no information was sent to a backend.</p>
+        <a href="/#shop">Return to the shop <span aria-hidden="true">↗</span></a>
+      </section>
+    </main>
+    <script type="module" src="/src/checkout.js"></script>
+  </body>
+</html>
