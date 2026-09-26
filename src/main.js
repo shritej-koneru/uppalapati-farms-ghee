@@ -1,3 +1,5 @@
+import { products, currency, cartStorageKey, readCart } from './catalogue.js';
+
 const journeyStage = document.querySelector('[data-journey]');
 const processVideo = document.querySelector('[data-process-video]');
 const processCaptions = [...document.querySelectorAll('[data-process-caption]')];
@@ -22,33 +24,13 @@ const loadingProgress = document.querySelector('[data-loading-progress]');
 const loadingPercent = document.querySelector('[data-loading-percent]');
 
 const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-const videoSources = ['/media/ghee-process-scrub.mp4', '/media/ghee-process-mobile.mp4', '/media/ghee-process.mp4'];
-const cartStorageKey = 'uppalapati-farms-cart';
+const videoSources = ['/media/ghee-process-scrub.mp4', '/media/ghee-process-mobile.mp4'];
 const captionWindows = [
   [0.08, 0.24],
   [0.32, 0.47],
   [0.55, 0.7],
   [0.77, 0.9],
 ];
-const products = {
-  'half-litre': {
-    name: 'Half-litre ghee',
-    size: '500 ml',
-    price: 699,
-    image: '/media/ghee-jar-100ml.jpg',
-  },
-  'one-litre': {
-    name: 'One-litre ghee',
-    size: '1 L',
-    price: 1299,
-    image: '/media/ghee-jar-500ml.jpg',
-  },
-};
-const currency = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 0,
-});
 
 let scrollFrame = 0;
 let resizeTimer = 0;
@@ -63,10 +45,11 @@ let jarReady = false;
 let jarFailed = false;
 let jarShouldPlay = false;
 let lastJarPlayAttempt = 0;
+let lastLabelFacingFront = null;
 let isReducedMotion = motionQuery.matches;
 let assetsDone = false;
 let loadDone = false;
-let cart = loadCart();
+let cart = readCart();
 
 // Failsafe: never let a boot error trap the visitor behind the loading screen.
 window.setTimeout(() => {
@@ -148,30 +131,12 @@ function preloadAssets() {
     image.src = src;
   });
 
-  const probe = document.createElement('video');
-  probe.muted = true;
-  probe.preload = 'auto';
-  probe.src = activeVideoSource || videoSources[0];
   const settleVideo = () => {
-    if (probe.currentTime < 2) {
-      try {
-        probe.currentTime = Math.min(2, (probe.duration || 4) - 0.1);
-        return;
-      } catch {
-        /* fall through to settle */
-      }
-    }
-    settleVideo.done = true;
-    settle();
+    if (processVideo.readyState >= 2) settle();
   };
-  probe.addEventListener('loadeddata', settleVideo, { once: true });
-  probe.addEventListener('error', settle, { once: true });
-  window.setTimeout(() => {
-    if (!settleVideo.done) {
-      settleVideo.done = true;
-      settle();
-    }
-  }, 7000);
+  processVideo.addEventListener('loadeddata', settleVideo, { once: true });
+  processVideo.addEventListener('error', settle, { once: true });
+  window.setTimeout(settle, 7000);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -255,6 +220,8 @@ function updateRevealLabels() {
   if (!revealLabel || !revealLabelEnd || jarDuration <= 0) return;
   const fraction = (jarVideo.currentTime % jarDuration) / jarDuration;
   const facingFront = fraction < 0.22 || fraction > 0.78;
+  if (facingFront === lastLabelFacingFront) return;
+  lastLabelFacingFront = facingFront;
   revealLabel.style.opacity = facingFront ? '0.85' : '0';
   revealLabelEnd.style.opacity = facingFront ? '0' : '0.85';
 }
@@ -367,25 +334,11 @@ function setReducedMotion() {
 
 /* ---------- Cart ---------- */
 
-function loadCart() {
-  const emptyCart = { 'half-litre': 0, 'one-litre': 0 };
-  try {
-    const savedCart = JSON.parse(window.localStorage.getItem(cartStorageKey));
-    if (!savedCart || typeof savedCart !== 'object') return emptyCart;
-    return {
-      'half-litre': clamp(Math.trunc(Number(savedCart['half-litre'])) || 0, 0, 9),
-      'one-litre': clamp(Math.trunc(Number(savedCart['one-litre'])) || 0, 0, 9),
-    };
-  } catch {
-    return emptyCart;
-  }
-}
-
 function saveCart() {
   try {
     window.localStorage.setItem(cartStorageKey, JSON.stringify(cart));
   } catch {
-    cart = loadCart();
+    cart = readCart();
   }
 }
 
@@ -496,7 +449,7 @@ window.addEventListener('resize', handleResize, { passive: true });
 window.addEventListener('pagehide', () => window.cancelAnimationFrame(scrollFrame));
 window.addEventListener('storage', (event) => {
   if (event.key !== cartStorageKey) return;
-  cart = loadCart();
+  cart = readCart();
   renderCart();
 });
 document.addEventListener('visibilitychange', () => {
@@ -525,7 +478,7 @@ cartDialog.addEventListener('click', (event) => {
 
 jarVideo.loop = true;
 if (!jarVideo.querySelector('source')) {
-  jarVideo.src = '/media/jar-360.webm';
+  jarVideo.src = '/media/jar-360.mp4';
   jarVideo.load();
 }
 selectVideoSource();

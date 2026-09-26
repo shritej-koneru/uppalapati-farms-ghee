@@ -1,4 +1,4 @@
-import { bottleArt } from './bottles.js';
+import { products, currency, readCart, productArt } from './catalogue.js';
 
 const checkoutContent = document.querySelector('[data-checkout-content]');
 const checkoutDetails = document.querySelector('[data-checkout-details]');
@@ -9,44 +9,6 @@ const checkoutForm = document.querySelector('[data-checkout-form]');
 const checkoutSubmit = document.querySelector('[data-checkout-submit]');
 const checkoutStatus = document.querySelector('[data-checkout-status]');
 const checkoutConfirmation = document.querySelector('[data-checkout-confirmation]');
-const cartStorageKey = 'uppalapati-farms-cart';
-const products = {
-  'half-litre': {
-    name: 'Half-litre ghee',
-    size: '500 ml',
-    price: 699,
-    image: `data:image/svg+xml,${encodeURIComponent(bottleArt('half-litre', 'bottle-500'))}`,
-  },
-  'one-litre': {
-    name: 'One-litre ghee',
-    size: '1 L',
-    price: 1299,
-    image: `data:image/svg+xml,${encodeURIComponent(bottleArt('one-litre', 'bottle-1000'))}`,
-  },
-};
-const currency = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 0,
-});
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function loadCart() {
-  const emptyCart = { 'half-litre': 0, 'one-litre': 0 };
-  try {
-    const savedCart = JSON.parse(window.localStorage.getItem(cartStorageKey));
-    if (!savedCart || typeof savedCart !== 'object') return emptyCart;
-    return {
-      'half-litre': clamp(Math.trunc(Number(savedCart['half-litre'])) || 0, 0, 9),
-      'one-litre': clamp(Math.trunc(Number(savedCart['one-litre'])) || 0, 0, 9),
-    };
-  } catch {
-    return emptyCart;
-  }
-}
 
 function getCartEntries(cart) {
   return Object.entries(cart).filter(([, quantity]) => quantity > 0);
@@ -57,12 +19,12 @@ function getCartTotal(cart) {
 }
 
 function renderCheckout() {
-  const cart = loadCart();
+  const cart = readCart();
   const entries = getCartEntries(cart);
   checkoutItems.innerHTML = entries.map(([key, quantity]) => {
     const product = products[key];
     return `<article class="checkout-summary__item">
-      <img src="${product.image}" alt="" />
+      <img src="${productArt(key)}" alt="" />
       <div>
         <p>${product.size}</p>
         <h2>${product.name}</h2>
@@ -81,7 +43,7 @@ function renderCheckout() {
 
 checkoutForm.addEventListener('submit', (event) => {
   event.preventDefault();
-  if (getCartEntries(loadCart()).length === 0) return;
+  if (getCartEntries(readCart()).length === 0) return;
   if (!checkoutForm.reportValidity()) {
     checkoutStatus.textContent = 'Please complete the required fields with valid details.';
     checkoutForm.querySelector(':invalid')?.focus();
