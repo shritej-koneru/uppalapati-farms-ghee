@@ -29,6 +29,10 @@ function renderProduct() {
 
   frame.innerHTML = `<img src="${product.image}" alt="${product.name} in a ${product.size} jar" />`;
 
+  // The frame now shows the product hero, not a gallery shot, so no
+  // thumbnail should claim to be the active one.
+  thumbs.forEach((thumb) => thumb.classList.remove('is-active'));
+
   specs.innerHTML = product.specs
     .map(([term, value]) => `<div><dt>${term}</dt><dd>${value}</dd></div>`)
     .join('');
