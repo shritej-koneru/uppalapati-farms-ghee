@@ -2,8 +2,6 @@ import { products, currency, cartStorageKey, readCart } from './catalogue.js';
 
 const journeyStage = document.querySelector('[data-journey]');
 const processVideo = document.querySelector('[data-process-video]');
-const processCaptions = [...document.querySelectorAll('[data-process-caption]')];
-const processProgress = document.querySelector('[data-process-progress]');
 const productStage = document.querySelector('[data-product-stage]');
 const jarVideo = document.querySelector('[data-jar-360]');
 const jarFallback = document.querySelector('[data-jar-fallback]');
@@ -25,21 +23,17 @@ const loadingPercent = document.querySelector('[data-loading-percent]');
 
 const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 const videoSources = ['/media/film-1080.mp4', '/media/film-720.mp4'];
-const captionWindows = [
-  [0.08, 0.24],
-  [0.32, 0.47],
-  [0.55, 0.7],
-  [0.77, 0.9],
-];
+// The film is encoded 24fps. Seeking to a time that has not moved at least one
+// frame costs a full seek + decode for no visible gain, so skip those.
+const MIN_SEEK_STEP = 1 / 24;
 
 let scrollFrame = 0;
 let resizeTimer = 0;
-let activeCaption = -1;
 let videoDuration = 0;
 let videoReady = false;
 let activeVideoSource = '';
 let seekTarget = -1;
-let displayTime = 0;
+let lastSeekTime = -1;
 let jarDuration = 0;
 let jarReady = false;
 let jarFailed = false;
@@ -165,18 +159,7 @@ function updateJourney() {
   journeyStage.classList.toggle('intro-gone', introFade < 0.02);
   const exitWash = easeInOut(clamp((progress - 0.93) / 0.07, 0, 1));
   journeyStage.style.setProperty('--process-exit', exitWash.toFixed(4));
-  const nextCaption = captionWindows.findIndex(([start, end]) => progress >= start && progress <= end);
-  processProgress.style.transform = `scaleX(${progress.toFixed(4)})`;
-  setCaption(nextCaption);
   requestVideoSeek(progress);
-}
-
-function setCaption(index) {
-  if (index === activeCaption) return;
-  activeCaption = index;
-  processCaptions.forEach((caption, captionIndex) => {
-    caption.classList.toggle('is-active', captionIndex === index);
-  });
 }
 
 function requestVideoSeek(progress) {
@@ -228,7 +211,7 @@ function updateRevealLabels() {
   revealLabelEnd.style.opacity = facingFront ? '0' : '0.85';
 }
 
-/* ---------- Frame loop: butter-smooth video seeking ---------- */
+/* ---------- Frame loop: 1:1 scroll-locked video seeking ---------- */
 
 function syncScroll() {
   updateJourney();
@@ -237,16 +220,21 @@ function syncScroll() {
 
 function frame() {
   if (seekTarget >= 0 && videoDuration > 0) {
-    const target = seekTarget;
-    displayTime += (target - displayTime) * 0.18;
-    if (Math.abs(target - displayTime) < 0.0012) {
-      displayTime = target;
-      seekTarget = -1;
-    }
-    try {
-      processVideo.currentTime = clamp(displayTime, 0, videoDuration - 0.001);
-    } catch {
-      seekTarget = -1;
+    const target = clamp(seekTarget, 0, videoDuration - 0.001);
+    seekTarget = -1;
+    // Map scroll straight to time with no easing. An exponential chase here
+    // (the old displayTime lerp) always trailed the scroll position, so the
+    // film accelerated to catch up on fast scrolls and then coasted to a stop
+    // when scrolling stopped. Locking 1:1 removes both artefacts.
+    // Skipping sub-frame moves keeps the decoder from being starved by seeks
+    // that could not change the displayed frame anyway.
+    if (Math.abs(target - lastSeekTime) >= MIN_SEEK_STEP) {
+      lastSeekTime = target;
+      try {
+        processVideo.currentTime = target;
+      } catch {
+        /* seeking before metadata is ready */
+      }
     }
   }
   syncJarPlayback();
@@ -268,6 +256,8 @@ function setVideoSource(source) {
   if (source === activeVideoSource) return;
   activeVideoSource = source;
   videoReady = false;
+  // A different file starts at 0; clear the guard so the first scroll maps.
+  lastSeekTime = -1;
   processVideo.classList.remove('is-unavailable');
   processVideo.src = source;
   processVideo.load();
@@ -282,7 +272,7 @@ function handleVideoMetadata() {
   if (Number.isFinite(processVideo.duration) && processVideo.duration > 0) {
     videoDuration = processVideo.duration;
     videoReady = true;
-    displayTime = clamp(displayTime, 0, videoDuration - 0.001);
+    lastSeekTime = -1;
     processVideo.pause();
     syncScroll();
   }
