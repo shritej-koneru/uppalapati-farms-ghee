@@ -24,7 +24,7 @@ const loadingProgress = document.querySelector('[data-loading-progress]');
 const loadingPercent = document.querySelector('[data-loading-percent]');
 
 const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-const videoSources = ['/media/ghee-process-scrub.mp4', '/media/ghee-process-mobile.mp4'];
+const videoSources = ['/media/film-1080.mp4', '/media/film-720.mp4'];
 const captionWindows = [
   [0.08, 0.24],
   [0.32, 0.47],
@@ -116,7 +116,7 @@ function startLoadingScreen() {
 }
 
 function preloadAssets() {
-  const images = ['/media/ghee-poster.jpg', '/media/ghee-jar-500ml.jpg', '/media/ghee-jar-100ml.jpg'];
+  const images = ['/media/film-poster.jpg', '/media/ghee-jar-500ml.jpg', '/media/ghee-jar-100ml.jpg'];
   let pending = images.length + 1;
 
   const settle = () => {

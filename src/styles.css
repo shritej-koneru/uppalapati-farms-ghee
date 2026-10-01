@@ -205,7 +205,7 @@ body.is-ready .loading-screen {
   min-height: 560px;
   overflow: hidden;
   isolation: isolate;
-  background: var(--night) url('/media/ghee-poster.jpg') center / cover no-repeat;
+  background: var(--night) url('/media/film-poster.jpg') center / cover no-repeat;
 }
 
 .journey__video {
