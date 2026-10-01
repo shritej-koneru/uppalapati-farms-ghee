@@ -22,7 +22,23 @@ const loadingProgress = document.querySelector('[data-loading-progress]');
 const loadingPercent = document.querySelector('[data-loading-percent]');
 
 const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-const videoSources = ['/media/film-1080.mp4', '/media/film-720.mp4'];
+// Two encodes of the same 48s film, both CRF 26 so each stays visually
+// transparent - VMAF 96.8 (1080p) and 94.9 (720p) against the 4K master.
+// The previous CRF 31 encode scored 89.2, which is where artifacting becomes
+// visible. Ordered lightest to heaviest so a decode failure can step down.
+//
+// There is deliberately no 1440p tier. Cloudflare Pages rejects files over
+// 25 MiB, and no 1440p encode that fits scores well: CRF 30 measured 90.4
+// and a bitrate-capped CRF 26 measured 89.5. Upscaling this 1080p file to a
+// 2560 screen scored 93.2, so the upscale is the better trade until the
+// hosting cap moves. See the note on UPSCALE_TOLERANCE below.
+const filmSources = [
+  { src: '/media/film-720.mp4', width: 1280 },
+  { src: '/media/film-1080.mp4', width: 1920 },
+];
+// Phones stay on the light encode regardless of pixel density - a 720p file
+// in a ~390px-wide slot is already oversampled.
+const PHONE_WIDTH = 768;
 // The film is encoded 24fps. Seeking to a time that has not moved at least one
 // frame costs a full seek + decode for no visible gain, so skip those.
 const MIN_SEEK_STEP = 1 / 24;
@@ -264,8 +280,12 @@ function setVideoSource(source) {
 }
 
 function selectVideoSource() {
-  const source = window.innerWidth <= 768 ? videoSources[1] : videoSources[0];
-  setVideoSource(source);
+  // Phones take the light encode; everything else takes the best available.
+  // With only two tiers there is no width to reason about beyond that split -
+  // the device-pixel check that a third tier needed was what justified
+  // upscaling on wide screens, and measurement showed that upscale beats
+  // every 1440p encode that fits under the Pages file-size cap.
+  setVideoSource(window.innerWidth <= PHONE_WIDTH ? filmSources[0].src : filmSources[1].src);
 }
 
 function handleVideoMetadata() {
@@ -279,7 +299,9 @@ function handleVideoMetadata() {
 }
 
 function handleVideoError() {
-  const next = videoSources.find((source) => source !== activeVideoSource);
+  // Step down a tier rather than showing no film at all.
+  const index = filmSources.findIndex((film) => film.src === activeVideoSource);
+  const next = index > 0 ? filmSources[index - 1].src : null;
   if (next) {
     setVideoSource(next);
     return;
