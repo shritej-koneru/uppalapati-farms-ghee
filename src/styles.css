@@ -194,7 +194,11 @@ body.is-ready .loading-screen {
   --intro-lift: 0px;
   --process-exit: 0;
   position: relative;
-  height: 640svh;
+  /* The film is 48s long. This height sets how much scroll one second of film
+     costs: travel = height - 100svh, spread over 48s. At 640svh a single
+     wheel click advanced the film ~1s, which read as "playing too fast".
+     1720svh puts a click at ~0.3s instead. Trim if the film is ever recut. */
+  height: 1720svh;
   background: var(--night);
 }
 
@@ -2336,7 +2340,8 @@ body.page-body {
 
 @media (max-width: 700px) {
   .journey {
-    height: 540svh;
+    /* Same 3x slowdown as desktop, scaled from the old 540svh. */
+    height: 1420svh;
   }
 
   .journey__stage {
