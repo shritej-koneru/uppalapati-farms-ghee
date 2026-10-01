@@ -1,22 +1,71 @@
 import { products, currency } from './catalogue.js';
 
-/* ---------- Placeholder business profile ----------
-   Every value below is demo content. Replace each one with the
-   client's real details before this goes live — no other file
+/* ---------- Business profile ----------
+   Values marked TODO are still demo placeholders and must be replaced
+   with the client's real details before this goes live — no other file
    needs to change. */
 
 export const business = {
   name: 'Uppalapati Farms',
   tagline: 'Ghee, made slowly.',
   // wa.me needs country code + number with no +, spaces, or dashes.
-  whatsappNumber: '919000000000',
-  phoneDisplay: '+91 90000 00000',
-  email: 'hello@uppalapatifarms.example',
-  address: 'Uppalapati Farms, Kakinada Road, Andhra Pradesh 533001',
-  hours: 'Monday to Saturday, 9am – 7pm IST',
-  fssai: 'FSSAI 12345678901234',
+  whatsappNumber: '919000000000', // TODO real number
+  phoneDisplay: '+91 90000 00000', // TODO real number
+  email: 'hello@uppalapatifarms.example', // TODO real address
+  // Registered premises, as printed on the FSSAI registration certificate.
+  address: '1-37, Uppalapati Nagar, Poranki (Rural), Penamaluru, Krishna District, Andhra Pradesh 521137',
+  hours: 'Monday to Saturday, 9am – 7pm IST', // TODO confirm hours
+  fssai: 'FSSAI Reg. No. 20126121000520',
   // Shown as a demo notice wherever enquiries are collected.
   demoNotice: 'This is a design demo. No order or payment is processed.',
+};
+
+/* ---------- FSSAI registration ----------
+   Transcribed from the registration certificate held by the client.
+   Note this is a *registration* under the FSS Act, 2006 (annual turnover
+   up to Rs 1.5 crore), not a 14-digit licence. Keeping the wording exact
+   matters: calling it a "licence" is a factual error on a food product. */
+
+export const registration = {
+  number: '20126121000520',
+  displayNumber: 'FSSAI Reg. No. 20126121000520',
+  instrument: 'Registration Certificate',
+  status: 'Registration Certificate issued',
+  scheme: 'Issued under the Food Safety and Standards Act, 2006',
+  authority: 'Government of Andhra Pradesh',
+  holder: 'Uppalapati Radhika',
+  premises:
+    '1-37, Uppalapati Nagar, Poranki, Poranki (Rural), Penamaluru, Krishna, Andhra Pradesh 521137',
+  kindOfBusiness: 'Retailer, Distributor',
+  registeringAuthority: 'Krishna',
+  issuedOn: '6 July 2026',
+  feePaidUpto: '5 July 2031',
+  annualFee: '₹500',
+  suspension: 'None recorded',
+  turnoverCap: '₹1.5 crore per year',
+  helpline: '1800112100',
+  verifyUrl: 'https://foscos.fssai.gov.in',
+  verifyLabel: 'Food Safety Compliance System (FoSCoS)',
+  certificate: '/media/fssai-registration.pdf',
+  categories: [
+    {
+      code: '04',
+      label: 'Fruits and vegetables',
+      detail:
+        'Including mushrooms and fungi, roots and tubers, fresh pulses and legumes, and aloe vera; seaweeds; nuts and seeds.',
+    },
+    {
+      code: '06',
+      label: 'Cereals and cereal products',
+      detail:
+        'Derived from cereal grains, roots and tubers, pulses, legumes and pith or soft core of palm tree, excluding bakery wares of food category 7.0.',
+    },
+    { code: '12', label: 'Salts, spices, soups, sauces, salads and protein products' },
+    { code: '13', label: 'Foodstuffs intended for particular nutritional uses' },
+    { code: '14', label: 'Beverages, excluding dairy products' },
+    { code: '15', label: 'Ready-to-eat savouries' },
+    { code: '16', label: 'Prepared foods' },
+  ],
 };
 
 export const social = [

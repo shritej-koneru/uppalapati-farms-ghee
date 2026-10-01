@@ -1,5 +1,5 @@
 import { readCart, cartCount, addCartItem, products, cartStorageKey } from './catalogue.js';
-import { business, whatsappLink, generalEnquiryMessage, cartEnquiryMessage } from './business.js';
+import { business, registration, whatsappLink, generalEnquiryMessage, cartEnquiryMessage } from './business.js';
 
 const header = document.querySelector('[data-site-header]');
 const menuButton = document.querySelector('[data-menu-toggle]');
@@ -78,11 +78,25 @@ const businessFields = {
   'business-address': business.address,
   'business-hours': business.hours,
   'business-fssai': business.fssai,
+  'licence-number': registration.displayNumber,
+  'licence-holder': registration.holder,
+  'licence-premises': registration.premises,
+  'licence-kind': registration.kindOfBusiness,
+  'licence-authority': registration.registeringAuthority,
+  'licence-issued': registration.issuedOn,
+  'licence-valid': registration.feePaidUpto,
+  'licence-status': registration.status,
+  'licence-turnover': registration.turnoverCap,
+  'licence-fee': registration.annualFee,
+  'licence-suspension': registration.suspension,
+  'licence-helpline': registration.helpline,
+  'licence-authority-state': registration.authority,
 };
 
 const businessLinks = {
   'business-email': `mailto:${business.email}`,
   'business-phone': `tel:+${business.whatsappNumber}`,
+  'licence-helpline': 'tel:1800112100',
 };
 
 Object.entries(businessFields).forEach(([key, value]) => {

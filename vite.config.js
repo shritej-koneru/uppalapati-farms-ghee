@@ -11,6 +11,7 @@ export default defineConfig({
         about: resolve(process.cwd(), 'about.html'),
         faq: resolve(process.cwd(), 'faq.html'),
         contact: resolve(process.cwd(), 'contact.html'),
+        compliance: resolve(process.cwd(), 'compliance.html'),
       },
     },
   },
