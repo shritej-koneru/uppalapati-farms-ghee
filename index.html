@@ -129,6 +129,35 @@
         <div class="product-stage__viewport">
           <div class="product-reveal" data-product-reveal>
             <span class="product-reveal__halo" aria-hidden="true"></span>
+            <!-- The jar is 380px wide in a 1440px window and leaves roughly
+                 half a screen empty either side of it, which read as an
+                 unfinished stage rather than as breathing room. This fills it
+                 with the two things a visitor has not been told yet: why the
+                 milk is A2, and what the churn actually gives you.
+
+                 It is never hidden from assistive tech, only faded out on
+                 scroll: with no JS and under reduced motion the stage stops
+                 being scroll-driven and this reads as ordinary copy beneath the
+                 jar instead. Every claim here is one the site already makes -
+                 A2 desi cow, bilona, 9 months sealed - so the labels below it
+                 cannot disagree with it. -->
+            <aside class="product-facts" data-product-facts>
+              <div class="product-facts__side product-facts__side--lead">
+                <p class="product-facts__eyebrow">Why it's A2</p>
+                <h3 class="product-facts__head">Desi milk, nothing added</h3>
+                <p class="product-facts__body">Gir and Sahiwal cows carry the A2 form of beta-casein naturally. Crossbred cattle carry a mix of A1 and A2 — so the breed is the whole story here.</p>
+              </div>
+              <div class="product-facts__side product-facts__side--lag">
+                <p class="product-facts__eyebrow">What's in the jar</p>
+                <h3 class="product-facts__head">Grain you can see</h3>
+                <dl class="product-facts__list">
+                  <div class="product-facts__row"><dt>Method</dt><dd>Bilona, from set curd</dd></div>
+                  <div class="product-facts__row"><dt>Grain</dt><dd>Whole, slowly churned</dd></div>
+                  <div class="product-facts__row"><dt>Aroma</dt><dd>Warm and nutty</dd></div>
+                  <div class="product-facts__row"><dt>Keeps</dt><dd>9 months, sealed</dd></div>
+                </dl>
+              </div>
+            </aside>
             <div class="product-reveal__stage3d" data-product-object>
               <div class="jar-frame">
                 <!-- The canvas carries the name and the tab stop rather than the

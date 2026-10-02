@@ -239,6 +239,22 @@ function updateProductStage() {
   productStage.style.setProperty('--options-y', `${((1 - optionsProgress) * 42).toFixed(2)}px`);
   productStage.style.setProperty('--options-opacity', optionsProgress.toFixed(4));
   productStage.classList.toggle('options-visible', optionsProgress > 0.001);
+  // The flanking copy arrives once the jar has settled and is gone again before
+  // the cards are more than a hint visible, so the stage always has exactly one
+  // thing to say. Four windows rather than one opacity, because a single value
+  // can only fade both columns together - staggered, they read as two thoughts
+  // arriving and leaving. The windows are wide on purpose: this section scrolls
+  // 200svh, so a tenth of its progress is only ~180px of scroll, which is the
+  // difference between a glance and something you can actually read.
+  const factsIn = easeInOut(clamp((progress - 0.13) / 0.06, 0, 1));
+  const factsInLag = easeInOut(clamp((progress - 0.16) / 0.06, 0, 1));
+  const factsOut = easeInOut(clamp((0.38 - progress) / 0.08, 0, 1));
+  const factsOutLag = easeInOut(clamp((0.41 - progress) / 0.08, 0, 1));
+  const factsA = factsIn * factsOut;
+  const factsB = factsInLag * factsOutLag;
+  productStage.style.setProperty('--facts-opacity', factsA.toFixed(4));
+  productStage.style.setProperty('--facts-opacity-lag', factsB.toFixed(4));
+  productStage.style.setProperty('--facts-y', `${((factsA - 1) * 16).toFixed(2)}px`);
   const rect = productStage.getBoundingClientRect();
   const stageNear = rect.bottom > -window.innerHeight * 0.5 && rect.top < window.innerHeight * 1.5;
   // Deliberately not gated on revealProgress: that is the fly-in animation, and

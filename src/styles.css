@@ -522,12 +522,198 @@ body.is-ready .loading-screen {
 
 /* ---------- Product finale ---------- */
 
+/* Copy flanking the jar
+
+   The jar is 380px wide in a 1440px window, which left roughly half a screen
+   empty on each side of it. The middle track below is the jar's own measured
+   width rather than a guessed gutter, so the copy sits in the space the jar
+   actually leaves and stays put when that width changes. */
+
+.product-facts {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(34vw, 380px) minmax(0, 1fr);
+  align-items: center;
+  padding: 0 clamp(28px, 5vw, 92px);
+  /* Scroll-driven like everything else in this layer, and never a click
+     target: the buy buttons live underneath it. */
+  pointer-events: none;
+}
+
+.product-facts__side {
+  display: grid;
+  gap: 10px;
+  /* One width for both columns, so the space left between copy and jar is the
+     same on each side. Sizing them to their own content left a 93px gap on the
+     left and a 198px one on the right, which read as a misaligned layout
+     rather than as a deliberate one. */
+  width: min(100%, 36ch);
+  /* Tracks the jar's own rise so the copy stays level with it, but without the
+     jar's scale: text at 0.88 of its size is smaller text. */
+  transform: translateY(calc(var(--facts-y) + var(--reveal-y)));
+  will-change: transform, opacity;
+}
+
+/* Both columns hug the jar rather than the outer edge, so the gap to it is the
+   same on each side, and both are pushed off it by the same padding. */
+.product-facts__side--lead {
+  grid-column: 1;
+  justify-self: end;
+  padding-right: clamp(20px, 2.4vw, 44px);
+  opacity: var(--facts-opacity);
+}
+
+.product-facts__side--lag {
+  grid-column: 3;
+  justify-self: start;
+  padding-left: clamp(20px, 2.4vw, 44px);
+  text-align: right;
+  opacity: var(--facts-opacity-lag);
+}
+
+.product-facts__eyebrow {
+  margin: 0;
+  color: var(--gold-deep);
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.product-facts__head {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.2rem, 1.9vw, 1.65rem);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+}
+
+.product-facts__body {
+  margin: 0;
+  /* Ink, not muted: this is a paragraph someone is meant to read, and muted
+     sits at 3.6:1 against the paper. The eyebrows above still carry the
+     lighter tone, where it is a label rather than a claim. */
+  color: var(--ink);
+  font-size: 0.84rem;
+  line-height: 1.62;
+}
+
+.product-facts__list {
+  margin: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.product-facts__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  padding-top: 7px;
+  border-top: 1px solid rgba(72, 54, 23, 0.16);
+}
+
+.product-facts__row dt {
+  color: var(--gold-deep);
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.product-facts__row dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+/* Below this there is no side space left to fill - the jar is 64vw and the
+   screen is all jar - so the copy stops flanking it and stacks underneath,
+   which is the only place on a phone where there is room. Measured, not
+   guessed: at 390x844 the turntable label sits at y~586 and the screen ends at
+   844, so the band below it is about 245px tall. The spec list folds to two
+   columns to fit inside that. */
+@media (max-width: 1000px) {
+  .product-facts {
+    /* auto-fit rather than a breakpoint ladder: one column on a phone, two on a
+       tablet, and no width in between where the measure runs to 700px and a
+       line of text is over a hundred characters. */
+    grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
+    align-content: end;
+    /* Bottom-anchored and tight to the edge, because the band it has to fit is
+       only ~185px tall on a phone once the jar and its label are accounted for. */
+    padding: 0 clamp(24px, 7vw, 56px) clamp(16px, 3vh, 30px);
+  }
+
+  .product-facts__side {
+    /* The side tracks no longer exist, so the padding that kept the copy off
+       the jar would indent it away from nothing. */
+    grid-column: auto;
+    width: 100%;
+    padding: 0;
+    justify-self: stretch;
+    text-align: left;
+    gap: 5px;
+    /* Neither of the two transforms the flanking copy uses applies here.
+       Bottom-anchored, this block is positioned against the bottom of the
+       screen rather than against the jar, so following the jar's rise pushed
+       it straight up into the jar's own box. And the 16px entry drift is
+       dropped because here it is spent out of the ~180px the phone actually
+       has below the jar's label, where it cost the clearance the text needed. */
+    transform: none;
+  }
+
+  .product-facts__side--lag {
+    margin-top: 14px;
+  }
+
+  .product-facts__body {
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .product-facts__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px 16px;
+    margin-top: 1px;
+  }
+
+  .product-facts__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1px;
+    padding-top: 6px;
+  }
+
+  .product-facts__row dd {
+    font-size: 0.76rem;
+    line-height: 1.4;
+  }
+}
+
+/* On a phone the two serif headlines do not fit under the jar alongside
+   everything else, and the eyebrows above them already say what each block is
+   about. Dropping them is what makes the copy fit rather than overflow the
+   screen or sit on top of the jar. */
+@media (max-width: 700px) {
+  .product-facts__head {
+    display: none;
+  }
+}
+
 .product-stage {
   --reveal-y: 0vh;
   --reveal-scale: 1;
   --halo-opacity: 0.72;
   --options-y: 42px;
   --options-opacity: 0;
+  --facts-opacity: 0;
+  --facts-opacity-lag: 0;
+  --facts-y: -16px;
   position: relative;
   /* Pulled up one viewport so it covers the journey's release band. A 100svh
      sticky stage inside a taller section un-pins across the section's last
@@ -1405,8 +1591,12 @@ body.is-ready .loading-screen {
 .no-js .product-reveal,
 .reduced-motion .product-reveal {
   position: relative;
-  height: 76svh;
-  min-height: 540px;
+  /* auto rather than a fixed 76svh: with the copy now sharing this box the jar
+     and the text need about 780px, which is more than 76svh of a 900px screen,
+     and a fixed height let the copy spill over the cards underneath it. */
+  height: auto;
+  min-height: 76svh;
+  align-content: center;
 }
 
 .no-js .product-reveal__stage3d,
@@ -1415,6 +1605,58 @@ body.is-ready .loading-screen {
   top: auto;
   left: auto;
   transform: none;
+}
+
+/* Nothing sets these once the stage is no longer scroll-driven, so the copy
+   would stay at its initial opacity of 0 and never be readable. It joins the
+   ordinary document flow under the jar instead of floating over a viewport
+   that is no longer scrubbed. */
+.no-js .product-facts,
+.reduced-motion .product-facts {
+  --facts-opacity: 1;
+  --facts-opacity-lag: 1;
+  --facts-y: 0px;
+  position: relative;
+  inset: auto;
+  /* order 2 puts it after the turntable, which is a grid item of the same
+     parent. Without it the copy renders above the jar purely because of where
+     it sits in the markup, and the stage reads as a wall of text with a jar
+     under it rather than a product with its details beneath. */
+  order: 2;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: clamp(24px, 6vw, 72px);
+  padding: 32px clamp(28px, 7vw, 112px) 40px;
+  /* Stretch to a sensible measure rather than shrink-wrapping to its contents,
+     which left the two blocks 453px wide sitting in the middle of the screen
+     with 230px of dead paper either side. */
+  justify-self: stretch;
+  max-width: 1120px;
+  margin-inline: auto;
+}
+
+.no-js .product-facts__side,
+.reduced-motion .product-facts__side {
+  width: 100%;
+  /* Capped so the measure stays near 40 characters. Uncapped, a 1440px window
+     gave lines of about 87 characters, which is twice as long as anyone reads. */
+  max-width: 40ch;
+  padding: 0;
+  justify-self: center;
+  text-align: left;
+  transform: none;
+  will-change: auto;
+}
+
+/* The two columns above are specific enough to beat the narrow-screen rules
+   further up the file, so a phone would keep the pair and get a 23-character
+   measure. It has to be undone here, after them, at equal weight. */
+@media (max-width: 700px) {
+  .no-js .product-facts,
+  .reduced-motion .product-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
 }
 
 .no-js .product-options,
@@ -2566,6 +2808,15 @@ body.page-body {
   .jar-frame {
     width: min(64vw, 360px);
     height: min(48vh, 470px);
+  }
+
+  /* The jar moves up rather than getting smaller, to hand the phone the band
+     its copy needs. A 375x844 screen has ~180px between the jar's label and
+     the bottom and the copy block needs ~190, so something had to give;
+     lifting the turntable keeps it the size it was. The frame is still 405px
+     tall, it just starts higher, which also clears the fixed site header. */
+  .product-reveal__stage3d {
+    transform: translate3d(-50%, calc(-50% + var(--reveal-y) - 6.5vh), 0) scale(var(--reveal-scale));
   }
 
   .product-reveal__label,
