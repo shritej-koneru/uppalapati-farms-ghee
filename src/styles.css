@@ -614,6 +614,10 @@ body.is-ready .loading-screen {
   place-items: center;
   width: 100%;
   height: 100%;
+  /* Dragging a turntable must not start a text selection or drag a ghost of
+     the still behind the pointer. */
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .jar-3d,
@@ -625,6 +629,25 @@ body.is-ready .loading-screen {
   display: block;
   width: 100%;
   height: 100%;
+  /* .product-reveal is a full-viewport pass-through layer so it cannot cover
+     the options, which sit underneath it. The jar is the one thing in there
+     that is meant to be handled, so it takes its events back - and only it. */
+  pointer-events: auto;
+  cursor: grab;
+  /* pan-y and not none: a vertical swipe over the jar still scrolls the page,
+     which on this site is the whole navigation. Only the horizontal axis is
+     taken, and that is the only axis a turntable turns on. A vertical drag
+     hands the gesture back to the browser and arrives as pointercancel. */
+  touch-action: pan-y;
+}
+
+.jar-3d:active {
+  cursor: grabbing;
+}
+
+.jar-3d:focus-visible {
+  outline: 2px solid var(--gold-light);
+  outline-offset: 4px;
 }
 
 .jar-3d-fallback {
