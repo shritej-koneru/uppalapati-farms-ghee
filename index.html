@@ -131,8 +131,17 @@
             <span class="product-reveal__halo" aria-hidden="true"></span>
             <div class="product-reveal__stage3d" data-product-object>
               <div class="jar-frame">
-                <video class="jar-360" data-jar-360 muted loop playsinline preload="auto" autoplay aria-label="Uppalapati Farms ghee jar rotating a full turn"><source src="/media/jar-360.webm" type="video/webm" /></video>
-                <img class="jar-360-fallback" data-jar-fallback src="/media/ghee-jar-500ml.jpg" alt="Uppalapati Farms pure ghee jar" hidden />
+                <!-- role=img and the label sit on the inner box so the jar is
+                     named whether or not the canvas below ever gets a context.
+                     The still starts visible and is hidden by script once the
+                     canvas has drawn, so no JS means the jar is still there. It
+                     deliberately carries no hidden attribute: this stylesheet
+                     has [hidden] { display: none !important }, which no author
+                     rule could undo from a .no-js selector. -->
+                <div class="jar-frame__model" role="img" aria-label="Uppalapati Farms ghee jar turning slowly on a turntable">
+                  <canvas class="jar-3d" data-jar-3d></canvas>
+                  <img class="jar-3d-fallback" data-jar-fallback src="/media/ghee-jar-500ml.jpg" alt="" loading="lazy" decoding="async" />
+                </div>
               </div>
               <div class="product-reveal__label" data-reveal-label>Pack — 1 L family jar</div>
               <div class="product-reveal__label product-reveal__label--end" data-reveal-label-end>Our most loved jar</div>

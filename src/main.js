@@ -1,4 +1,5 @@
 import { products, currency, cartStorageKey, readCart } from './catalogue.js';
+import { createJar3d } from './jar3d.js';
 
 const journeyStage = document.querySelector('[data-journey]');
 const processVideo = document.querySelector('[data-process-video]');
@@ -7,7 +8,7 @@ const captions = [...document.querySelectorAll('[data-caption]')].map((el) => {
   return { el, from, to };
 });
 const productStage = document.querySelector('[data-product-stage]');
-const jarVideo = document.querySelector('[data-jar-360]');
+const jarCanvas = document.querySelector('[data-jar-3d]');
 const jarFallback = document.querySelector('[data-jar-fallback]');
 const revealLabel = document.querySelector('[data-reveal-label]');
 const revealLabelEnd = document.querySelector('[data-reveal-label-end]');
@@ -55,11 +56,8 @@ let activeVideoSource = '';
 let activeCaption = null;
 let seekTarget = -1;
 let lastSeekTime = -1;
-let jarDuration = 0;
-let jarReady = false;
-let jarFailed = false;
-let jarShouldPlay = false;
-let lastJarPlayAttempt = 0;
+let jarTurnFraction = null;
+let jar3dStarted = false;
 let lastLabelFacingFront = null;
 let isReducedMotion = motionQuery.matches;
 let assetsDone = false;
@@ -131,7 +129,11 @@ function startLoadingScreen() {
 }
 
 function preloadAssets() {
-  const images = ['/media/film-poster.jpg', '/media/ghee-jar-500ml.jpg', '/media/ghee-jar-100ml.jpg'];
+  // The 500ml still is no longer listed: it is a real <img> in the markup now,
+  // lazy, and is the fallback only if three.js or WebGL is refused. Preloading
+  // it here would put 753 kB in front of the first paint for a jar most
+  // visitors never scroll down to.
+  const images = ['/media/film-poster.jpg', '/media/ghee-jar-100ml.jpg'];
   let pending = images.length + 1;
 
   const settle = () => {
@@ -207,7 +209,25 @@ function requestVideoSeek(progress) {
   updateCaptions(seekTarget);
 }
 
-/* ---------- Rotating jar (scrubbed 360 video) ---------- */
+/* ---------- Rotating jar (live 3D) ---------- */
+
+const jar3d = jarCanvas
+  ? createJar3d({
+      canvas: jarCanvas,
+      // The still stays hidden until the canvas has proved it can draw. It is
+      // the only thing on the page if three.js, WebGL or the GLB is refused, so
+      // it is shown on every failure path rather than left to an empty frame.
+      onReady: () => {
+        if (jarFallback) jarFallback.hidden = true;
+      },
+      onFail: () => {
+        if (jarFallback) jarFallback.hidden = false;
+      },
+      onFraction: (fraction) => {
+        jarTurnFraction = fraction;
+      },
+    })
+  : null;
 
 function updateProductStage() {
   const progress = getSectionProgress(productStage);
@@ -223,28 +243,27 @@ function updateProductStage() {
   const stageNear = rect.bottom > -window.innerHeight * 0.5 && rect.top < window.innerHeight * 1.5;
   // Deliberately not gated on revealProgress: that is the fly-in animation, and
   // it is still 0 where the jar is first framed, which froze it on frame 0.
-  jarShouldPlay = jarReady && !isReducedMotion && stageNear;
-}
-
-/* ---------- Jar playback helpers ---------- */
-
-function syncJarPlayback() {
-  if (!jarReady) return;
-  if (jarShouldPlay) {
-    if (jarVideo.paused && !document.hidden && performance.now() - lastJarPlayAttempt > 800) {
-      lastJarPlayAttempt = performance.now();
-      const attempt = jarVideo.play();
-      if (attempt && typeof attempt.catch === 'function') attempt.catch(() => {});
+  // Both the load and the per-frame work are gated on stageNear, so the jar
+  // costs nothing until it is on its way into view.
+  if (jar3d && stageNear) {
+    if (!jar3dStarted) {
+      jar3dStarted = true;
+      jar3d.start();
     }
-  } else if (!jarVideo.paused) {
-    jarVideo.pause();
+    jar3d.setActive(true);
+  } else {
+    jar3d?.setActive(false);
   }
 }
 
+/* ---------- Jar label swap ---------- */
+
 function updateRevealLabels() {
-  if (!revealLabel || !revealLabelEnd || jarDuration <= 0) return;
-  const fraction = (jarVideo.currentTime % jarDuration) / jarDuration;
-  const facingFront = fraction < 0.22 || fraction > 0.78;
+  if (!revealLabel || !revealLabelEnd || jarTurnFraction === null) return;
+  // Front-facing is the middle 44% of the turn, either side of the authored
+  // front of the model. Unchanged from the 360 video, which was shot the same
+  // way round.
+  const facingFront = jarTurnFraction < 0.22 || jarTurnFraction > 0.78;
   if (facingFront === lastLabelFacingFront) return;
   lastLabelFacingFront = facingFront;
   revealLabel.style.opacity = facingFront ? '0.85' : '0';
@@ -258,7 +277,7 @@ function syncScroll() {
   updateProductStage();
 }
 
-function frame() {
+function frame(now) {
   if (seekTarget >= 0 && videoDuration > 0) {
     const target = clamp(seekTarget, 0, videoDuration - 0.001);
     seekTarget = -1;
@@ -277,7 +296,9 @@ function frame() {
       }
     }
   }
-  syncJarPlayback();
+  // The jar renders from the page's existing animation frame rather than a
+  // loop of its own, so a turning jar does not double the per-frame cost.
+  jar3d?.tick(now);
   updateRevealLabels();
   window.requestAnimationFrame(frame);
 }
@@ -333,40 +354,16 @@ function handleVideoError() {
   processVideo.classList.add('is-unavailable');
 }
 
-function handleJarMetadata() {
-  if (Number.isFinite(jarVideo.duration) && jarVideo.duration > 0) {
-    jarDuration = jarVideo.duration;
-    jarReady = true;
-    try {
-      jarVideo.currentTime = 0;
-    } catch {
-      /* not seekable yet; playback starts from the current frame */
-    }
-    syncJarPlayback();
-    syncScroll();
-  }
-}
-
-function handleJarError() {
-  jarFailed = true;
-  jarReady = false;
-  jarVideo.hidden = true;
-  if (jarFallback) jarFallback.hidden = false;
-}
-
 function setReducedMotion() {
   isReducedMotion = motionQuery.matches;
   document.documentElement.classList.toggle('reduced-motion', isReducedMotion);
   if (isReducedMotion) {
     processVideo.pause();
-    jarVideo.pause();
     journeyStage.style.setProperty('--intro-opacity', '1');
   }
-  if (jarFallback && !jarFailed) {
-    jarVideo.hidden = isReducedMotion;
-    jarFallback.hidden = !isReducedMotion;
-  }
-  jarShouldPlay = false;
+  // The jar is still built - reduced motion parks it at a three-quarter turn and
+  // draws one frame, which is a better read of the jar than the old still was.
+  jar3d?.setReducedMotion(isReducedMotion);
   scheduleScrollSync();
 }
 
@@ -470,6 +467,9 @@ function continueToCheckout() {
 }
 
 function handleResize() {
+  // The canvas backing store is sized immediately rather than on the debounce,
+  // so a resize never leaves a stretched frame on screen for 100ms.
+  jar3d?.resize();
   window.clearTimeout(resizeTimer);
   resizeTimer = window.setTimeout(() => {
     selectVideoSource();
@@ -481,8 +481,12 @@ function handleResize() {
 
 processVideo.addEventListener('loadedmetadata', handleVideoMetadata);
 processVideo.addEventListener('error', handleVideoError);
-jarVideo.addEventListener('loadedmetadata', handleJarMetadata);
-jarVideo.addEventListener('error', handleJarError);
+jarCanvas?.addEventListener('webglcontextlost', (event) => {
+  // Without preventDefault the context is never restored, so the jar would be
+  // left blank. Hand the space back to the still instead.
+  event.preventDefault();
+  if (jarFallback) jarFallback.hidden = false;
+});
 window.addEventListener('scroll', scheduleScrollSync, { passive: true });
 window.addEventListener('resize', handleResize, { passive: true });
 window.addEventListener('pagehide', () => window.cancelAnimationFrame(scrollFrame));
@@ -494,7 +498,7 @@ window.addEventListener('storage', (event) => {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     processVideo.pause();
-    jarVideo.pause();
+    jar3d?.setActive(false);
   } else {
     scheduleScrollSync();
   }
@@ -515,11 +519,6 @@ cartDialog.addEventListener('click', (event) => {
 
 /* ---------- Boot ---------- */
 
-jarVideo.loop = true;
-if (!jarVideo.querySelector('source')) {
-  jarVideo.src = '/media/jar-360.webm';
-  jarVideo.load();
-}
 selectVideoSource();
 setReducedMotion();
 renderCart();

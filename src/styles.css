@@ -583,19 +583,51 @@ body.is-ready .loading-screen {
 }
 
 .jar-frame {
+  position: relative;
   width: min(34vw, 380px);
   height: min(62vh, 560px);
   display: grid;
   place-items: center;
 }
 
-.jar-360 {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+/* Soft contact shadow. The environment map lights the jar from every side, so
+   nothing in the render puts it on a surface. This is the one cue that it
+   sits on something rather than floating, and it matches the drop-shadow the
+   still fallback carries. */
+.jar-frame::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 7%;
+  width: 56%;
+  height: 6%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(72, 54, 23, 0.26), rgba(72, 54, 23, 0));
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
-.jar-360-fallback {
+/* Canvas and still share one grid cell so whichever is showing occupies the
+   same box, and swapping between them moves nothing. */
+.jar-frame__model {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.jar-3d,
+.jar-3d-fallback {
+  grid-area: 1 / 1;
+}
+
+.jar-3d {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.jar-3d-fallback {
   max-width: 82%;
   max-height: 82%;
   object-fit: contain;
@@ -1385,12 +1417,10 @@ body.is-ready .loading-screen {
   pointer-events: auto;
 }
 
+/* The canvas fills its box, so unlike the video it replaces, the frame cannot
+   fall back to height:auto - that would collapse to nothing. */
 .reduced-motion .jar-frame {
   width: min(60vw, 420px);
-  height: auto;
-}
-
-.reduced-motion .jar-360 {
   height: min(60vh, 520px);
 }
 
