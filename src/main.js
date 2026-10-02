@@ -2,6 +2,10 @@ import { products, currency, cartStorageKey, readCart } from './catalogue.js';
 
 const journeyStage = document.querySelector('[data-journey]');
 const processVideo = document.querySelector('[data-process-video]');
+const captions = [...document.querySelectorAll('[data-caption]')].map((el) => {
+  const [from, to] = el.dataset.t.split(',').map(Number);
+  return { el, from, to };
+});
 const productStage = document.querySelector('[data-product-stage]');
 const jarVideo = document.querySelector('[data-jar-360]');
 const jarFallback = document.querySelector('[data-jar-fallback]');
@@ -48,6 +52,7 @@ let resizeTimer = 0;
 let videoDuration = 0;
 let videoReady = false;
 let activeVideoSource = '';
+let activeCaption = null;
 let seekTarget = -1;
 let lastSeekTime = -1;
 let jarDuration = 0;
@@ -178,9 +183,28 @@ function updateJourney() {
   requestVideoSeek(progress);
 }
 
+function updateCaptions(time) {
+  // The intro carries the only H1 and the two CTAs, so a line shown underneath
+  // it would stack two blocks of text on one frame. Wait for the intro to be
+  // gone. The windows do not overlap, so the first match is the right one.
+  const allowed = journeyStage.classList.contains('intro-gone');
+  const next = allowed && time !== null ? captions.find((c) => time >= c.from && time <= c.to) : null;
+  if (next === activeCaption) return;
+  if (activeCaption) activeCaption.el.classList.remove('is-visible');
+  activeCaption = next;
+  if (next) next.el.classList.add('is-visible');
+}
+
 function requestVideoSeek(progress) {
-  if (!videoReady || isReducedMotion || videoDuration <= 0) return;
+  if (!videoReady || isReducedMotion || videoDuration <= 0) {
+    updateCaptions(null);
+    return;
+  }
   seekTarget = clamp(progress, 0, 0.999) * videoDuration;
+  // Drive captions off the target time rather than video.currentTime: the
+  // target is what the frame is being seeked to, so the line cannot drift a
+  // frame behind the picture while a seek is still decoding.
+  updateCaptions(seekTarget);
 }
 
 /* ---------- Rotating jar (scrubbed 360 video) ---------- */

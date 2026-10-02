@@ -229,6 +229,117 @@ body.is-ready .loading-screen {
   opacity: 0;
 }
 
+/* ---------- Journey captions ----------
+   These lines used to be burned into the film. The video is scaled with
+   object-fit: cover, so on any viewport that is not 16:9 the sides or the top
+   and bottom of the frame get cut off, and text baked into the pixels went
+   with them. Real DOM text is positioned against the viewport instead, so it
+   survives every crop. */
+.journey__captions {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  /* Gutters live here and are inherited by the captions. They cannot be plain
+     padding on this layer: an absolutely positioned child resolves its
+     percentages against the containing block's padding box, and for a box
+     sized by inset:0 the padding box is still the full stage. Padding would
+     have been silently ignored - top: 4% measured 43px on a 1080 stage, which
+     put the first line underneath the sticky header. */
+  --caption-gutter-x: clamp(24px, 6vw, 104px);
+  --caption-gutter-top: clamp(84px, 12vh, 144px);
+  --caption-gutter-bottom: clamp(56px, 10vh, 120px);
+}
+
+.journey__caption {
+  position: absolute;
+  margin: 0;
+  max-width: min(30ch, 42%);
+  color: var(--cream);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 380ms ease, transform 380ms var(--ease-out);
+}
+
+.journey__caption.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.journey__caption[data-pos='left'] {
+  left: var(--caption-gutter-x);
+  text-align: left;
+}
+
+.journey__caption[data-pos='right'] {
+  right: var(--caption-gutter-x);
+  text-align: right;
+}
+
+/* Bands. 'top' is anchored to the header gutter outright; the mid bands use
+   percentages but stay above that gutter at every stage height the CSS allows
+   (the stage has min-height 560px); 'lower' is anchored to the bottom gutter
+   so it can never run off a short viewport. */
+.journey__caption[data-band='top'] { top: var(--caption-gutter-top); }
+.journey__caption[data-band='upper'] { top: 24%; }
+.journey__caption[data-band='mid'] { top: 42%; }
+.journey__caption[data-band='lower'] { bottom: var(--caption-gutter-bottom); }
+.journey__caption[data-band='centre'] {
+  top: 50%;
+  transform: translateY(calc(-50% + 14px));
+}
+
+.journey__caption[data-band='centre'].is-visible {
+  transform: translateY(-50%);
+}
+
+.journey__caption-line {
+  display: block;
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 3.4vw, 3.1rem);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.journey__caption-sub {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--serif);
+  font-size: clamp(0.95rem, 1.5vw, 1.4rem);
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  opacity: 0.92;
+}
+
+/* Below the two-column breakpoint the left and right placements would fight
+   over the same narrow column, so every line moves to one bottom-left anchor.
+   They stay absolutely positioned rather than joining a flex row: all twelve
+   reserve no space this way, so an inactive line cannot push the visible one
+   out of the frame. */
+@media (max-width: 860px) {
+  .journey__caption,
+  .journey__caption[data-pos='left'],
+  .journey__caption[data-pos='right'],
+  .journey__caption[data-band='centre'] {
+    left: var(--caption-gutter-x);
+    right: auto;
+    top: auto;
+    bottom: var(--caption-gutter-bottom);
+    max-width: 100%;
+    text-align: left;
+    transform: translateY(14px);
+  }
+
+  .journey__caption.is-visible,
+  .journey__caption[data-band='centre'].is-visible {
+    transform: translateY(0);
+  }
+}
+
 /* Soft vignette so overlaid text stays readable over bright footage */
 .journey__stage::before {
   content: '';
@@ -1151,6 +1262,14 @@ body.is-ready .loading-screen {
   min-height: 0;
   overflow: visible;
   background: var(--paper);
+}
+
+/* Without the scroll timeline there is no single "current" line to show, so the
+   captions would stack on top of each other. The journey text is still read in
+   full by assistive tech; it just is not painted. */
+.no-js .journey__captions,
+.reduced-motion .journey__captions {
+  display: none;
 }
 
 .no-js .journey__video,
