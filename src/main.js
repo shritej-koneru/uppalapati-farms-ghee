@@ -27,7 +27,7 @@ const loadingPercent = document.querySelector('[data-loading-percent]');
 
 const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 // Two encodes of the same 48s film, both CRF 26 so each stays visually
-// transparent - VMAF 96.8 (1080p) and 94.9 (720p) against the 4K master.
+// transparent - VMAF 97.3 (1080p) and 96.0 (720p) against the 4K master.
 // The previous CRF 31 encode scored 89.2, which is where artifacting becomes
 // visible. Ordered lightest to heaviest so a decode failure can step down.
 //
@@ -35,7 +35,7 @@ const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 // 25 MiB, and no 1440p encode that fits scores well: CRF 30 measured 90.4
 // and a bitrate-capped CRF 26 measured 89.5. Upscaling this 1080p file to a
 // 2560 screen scored 93.2, so the upscale is the better trade until the
-// hosting cap moves. See the note on UPSCALE_TOLERANCE below.
+// hosting cap moves. At 21.1 MiB the 1080p tier sits at 84.4% of that cap.
 const filmSources = [
   { src: '/media/film-720.mp4', width: 1280 },
   { src: '/media/film-1080.mp4', width: 1920 },

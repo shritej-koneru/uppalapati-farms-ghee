@@ -240,14 +240,21 @@ body.is-ready .loading-screen {
   z-index: 3;
   inset: 0;
   pointer-events: none;
+  /* The film ends on a paper wash (::after, z-index 2) driven by
+     --process-exit. The captions sit at z-index 3, above it, so the last line
+     used to hang over the white instead of going with the picture - a caption
+     floating on blank paper just before the jar. Fading the whole layer by the
+     same variable dissolves them in step with the wash, and leaves the paint
+     order alone. --process-exit is 0 for the rest of the film, so this is a
+     no-op until the last 7%. */
+  opacity: calc(1 - var(--process-exit));
   /* Gutters live here and are inherited by the captions. They cannot be plain
      padding on this layer: an absolutely positioned child resolves its
      percentages against the containing block's padding box, and for a box
      sized by inset:0 the padding box is still the full stage. Padding would
      have been silently ignored - top: 4% measured 43px on a 1080 stage, which
      put the first line underneath the sticky header. */
-  --caption-gutter-x: clamp(24px, 6vw, 104px);
-  --caption-gutter-top: clamp(84px, 12vh, 144px);
+  --caption-gutter-x: max(6%, clamp(24px, 6vw, 104px));
   --caption-gutter-bottom: clamp(56px, 10vh, 120px);
 }
 
@@ -255,8 +262,14 @@ body.is-ready .loading-screen {
   position: absolute;
   margin: 0;
   max-width: min(30ch, 42%);
-  color: var(--cream);
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55);
+  /* Warm parchment instead of near-white. The footage already carries the
+     gold, and #fbf6ea on top of it read as a stark UI overlay rather than as
+     part of the picture. Measured 5.9:1 against the film's mean luminance. */
+  color: #f6e9ce;
+  /* Tighter and warmer than the old 0 2px 18px rgba(0,0,0,.55). A dark halo is
+     still load-bearing here: these lines have no scrim behind them, and the
+     brightest patch of footage measures 1.8:1 against the text. */
+  text-shadow: 0 2px 12px rgba(12, 8, 3, 0.5);
   opacity: 0;
   transform: translateY(14px);
   transition: opacity 380ms ease, transform 380ms var(--ease-out);
@@ -267,76 +280,66 @@ body.is-ready .loading-screen {
   transform: translateY(0);
 }
 
+/* All twelve captions share one anchor: bottom-left. The position still lives in
+   the markup as data-pos/data-band rather than being hard-coded here, so putting
+   an individual line back where the film had it is an attribute edit and not a
+   rewrite. Only the two values actually in use carry a rule - the right-hand and
+   upper/mid/centre anchors were dropped along with the last caption that used
+   them, and a stale rule here would be an untested claim about the layout. */
 .journey__caption[data-pos='left'] {
   left: var(--caption-gutter-x);
   text-align: left;
 }
 
-.journey__caption[data-pos='right'] {
-  right: var(--caption-gutter-x);
-  text-align: right;
-}
-
-/* Bands. 'top' is anchored to the header gutter outright; the mid bands use
-   percentages but stay above that gutter at every stage height the CSS allows
-   (the stage has min-height 560px); 'lower' is anchored to the bottom gutter
-   so it can never run off a short viewport. */
-.journey__caption[data-band='top'] { top: var(--caption-gutter-top); }
-.journey__caption[data-band='upper'] { top: 24%; }
-.journey__caption[data-band='mid'] { top: 42%; }
-.journey__caption[data-band='lower'] { bottom: var(--caption-gutter-bottom); }
-.journey__caption[data-band='centre'] {
-  top: 50%;
-  transform: translateY(calc(-50% + 14px));
-}
-
-.journey__caption[data-band='centre'].is-visible {
-  transform: translateY(-50%);
+/* Anchored to the bottom gutter rather than to a percentage, so the line cannot
+   run off the bottom of a short viewport however low the stage gets. */
+.journey__caption[data-band='lower'] {
+  bottom: var(--caption-gutter-bottom);
 }
 
 .journey__caption-line {
   display: block;
   font-family: var(--serif);
-  font-size: clamp(1.5rem, 3.4vw, 3.1rem);
-  font-weight: 600;
+  /* Nudged up from 2.75rem/1.75rem to 3.125rem/1.875rem - about 14% on desktop
+     and 7% on a phone, which is enough to read as deliberate without becoming
+     a different design. The 3.4vw middle still governs across the mid range, so
+     the change is a lift at both ends rather than a new scale. */
+  font-size: clamp(1.875rem, 3.4vw, 3.125rem);
+  font-weight: 500;
   letter-spacing: 0.04em;
-  line-height: 1.12;
+  line-height: 0.95;
   text-wrap: balance;
 }
 
 .journey__caption-sub {
   display: block;
-  margin-top: 6px;
+  margin-top: 5px;
   font-family: var(--serif);
-  font-size: clamp(0.95rem, 1.5vw, 1.4rem);
-  font-style: italic;
+  /* Held at just over half the headline, as before, so the pair keeps its
+     proportion: 26px under 50px against 23px under 44px. */
+  font-size: clamp(1rem, 1.8vw, 1.625rem);
+  font-style: normal;
   letter-spacing: 0.01em;
-  line-height: 1.3;
-  opacity: 0.92;
+  line-height: 1.25;
+  opacity: 0.94;
 }
 
-/* Below the two-column breakpoint the left and right placements would fight
-   over the same narrow column, so every line moves to one bottom-left anchor.
-   They stay absolutely positioned rather than joining a flex row: all twelve
-   reserve no space this way, so an inactive line cannot push the visible one
-   out of the frame. */
-@media (max-width: 860px) {
-  .journey__caption,
-  .journey__caption[data-pos='left'],
-  .journey__caption[data-pos='right'],
-  .journey__caption[data-band='centre'] {
-    left: var(--caption-gutter-x);
-    right: auto;
-    top: auto;
-    bottom: var(--caption-gutter-bottom);
-    max-width: 100%;
-    text-align: left;
-    transform: translateY(14px);
-  }
 
-  .journey__caption.is-visible,
-  .journey__caption[data-band='centre'].is-visible {
-    transform: translateY(0);
+
+
+
+/* Below the two-column breakpoint the captions keep their own anchors. Which
+   corner a line sits in, and which band it occupies, is the composition - a
+   caption that relocates on a phone reads as a different film - so none of the
+   left, right, top, bottom or text-align values are overridden here. Only the
+   measure changes: the desktop 42% cap would squeeze a long line into a few
+   words per row on a 360px screen, so it opens up to the full width available
+   between the two gutters. */
+@media (max-width: 860px) {
+  .journey__caption {
+    /* Resolved against the stage, not against the gutter inset, so it has to
+       subtract both gutters to land exactly on the space between them. */
+    max-width: calc(100% - 2 * var(--caption-gutter-x));
   }
 }
 
@@ -526,6 +529,13 @@ body.is-ready .loading-screen {
   --options-y: 42px;
   --options-opacity: 0;
   position: relative;
+  /* Pulled up one viewport so it covers the journey's release band. A 100svh
+     sticky stage inside a taller section un-pins across the section's last
+     100svh, but the film completes one viewport before that - so without this
+     the jar only arrived after a screen of blank paper. Overlapping the band
+     puts the jar on screen at the hand-off instead. The journey's own height is
+     untouched, so the film still costs the same scroll per wheel notch. */
+  margin-top: -100svh;
   height: 300svh;
   overflow: clip;
   color: var(--ink);
