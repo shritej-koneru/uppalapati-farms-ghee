@@ -101,12 +101,14 @@ deployment addressable by id under the dashboard's Deployments tab.
 ### A note on the subdomain
 
 The project is named `ghee-client`, but its address is
-**`ghee-client-2au.pages.dev`**, not `ghee-client.pages.dev`. `pages.dev`
-subdomains are globally unique, and the plain `ghee-client` subdomain is held
-by a different Cloudflare account (`kkarthikeya54@gmail.com`, account
-`73413827ea…`), which still serves an older copy of this site. Cloudflare
-cannot transfer a Pages project between accounts, so the `-2au` suffix is
-permanent unless the other account releases the subdomain.
+**`ghee-client-2au.pages.dev`**, not `ghee-client.pages.dev`. Cloudflare assigns
+a `pages.dev` subdomain when a Pages project is created, and does not allow it
+to be changed afterwards. The plain `ghee-client` subdomain was taken at creation
+time, so the `-2au` suffix is permanent for this project.
+
+To get a cleaner address, attach a custom domain to the project (Project →
+Custom domains). That is independent of the `pages.dev` subdomain and is the
+supported way to run this site on a domain you own.
 
 ## Logo
 
