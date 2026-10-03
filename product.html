@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#080b09" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='16' fill='%23080b09'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='Arial' font-size='13' fill='%23d6a44b'%3EUF%3C/text%3E%3C/svg%3E" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/media/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/media/icon-512.png" />
+    <link rel="apple-touch-icon" href="/media/apple-touch-icon.png" />
+    <link rel="preload" as="image" href="/media/logo.png" />
     <meta name="description" content="Shop small-batch traditional ghee from Uppalapati Farms. Hand-churned, farm-fresh, and packed in food-grade glass." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +18,7 @@
   <body class="page-body" data-page="product" data-site-cart="true">
     <header class="site-header" data-site-header data-header-overlay="false">
       <div class="site-header__inner">
-        <a class="site-header__brand" href="/">Uppalapati Farms</a>
+        <a class="site-header__brand" href="/"><img class="site-header__logo" src="/media/logo.png" alt="" width="40" height="40" decoding="async" /><span class="site-header__brand-text">Uppalapati Farms</span></a>
         <nav class="site-header__nav" id="site-nav" data-site-nav aria-label="Primary">
           <a href="/product.html" aria-current="page">Shop</a>
           <a href="/about.html">Our Farm</a>
@@ -42,46 +45,23 @@
       </ul>
 
       <div class="band">
-        <div class="pdp">
-          <div class="pdp__media">
-            <div class="pdp__frame" data-pdp-frame></div>
-            <div class="pdp__thumbs">
-              <button class="pdp__thumb" type="button" data-pdp-thumb aria-label="View gallery image one">
-                <img src="/media/ghee-frame-02.jpg" alt="" loading="lazy" />
-              </button>
-              <button class="pdp__thumb" type="button" data-pdp-thumb aria-label="View gallery image two">
-                <img src="/media/ghee-frame-05.jpg" alt="" loading="lazy" />
-              </button>
-              <button class="pdp__thumb" type="button" data-pdp-thumb aria-label="View gallery image three">
-                <img src="/media/ghee-frame-08.jpg" alt="" loading="lazy" />
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <p class="pdp__eyebrow" data-pdp-eyebrow>Family pack</p>
-            <h1 class="pdp__title" data-pdp-title>One-litre ghee</h1>
-            <p class="pdp__price" data-pdp-price></p>
-            <p class="pdp__summary" data-pdp-summary></p>
-
-            <div class="pdp__actions">
-              <button class="checkout-button" type="button" data-pdp-add data-add-product="one-litre">Add to cart</button>
-              <a class="text-link text-link--solid" href="#" data-pdp-enquire>Enquire on WhatsApp</a>
-            </div>
-
-            <dl class="spec-list" data-pdp-specs></dl>
-
-            <div class="form-actions">
-              <a class="pdp__switch-link" href="/product.html?size=half-litre" data-pdp-switch="half-litre">500 ml jar</a>
-              <a class="pdp__switch-link" href="/product.html?size=one-litre" data-pdp-switch="one-litre">1 litre jar</a>
-            </div>
-          </div>
+        <div class="shop-head">
+          <p class="band__eyebrow">Everything we make</p>
+          <h1 class="shop-head__title">Four products from the same churn.</h1>
+          <p class="shop-head__lead">
+            The ghee, the butter that rises above it, and the curd it is set from. Butter and curd are made only on the days we churn, so both need
+            <span data-preorder-days>two</span> days notice. Ghee jars ship as soon as they are packed.
+          </p>
         </div>
+
+        <div class="shop-grid" data-shop-grid></div>
+
+        <p class="shop-note" data-shop-lead hidden></p>
       </div>
 
-      <section class="band band--soft" aria-labelledby="pdp-story">
+      <section class="band band--soft" aria-labelledby="shop-story">
         <p class="band__eyebrow">How it is made</p>
-        <h2 class="band__title" id="pdp-story">Milk, curd, and time. Nothing else.</h2>
+        <h2 class="band__title" id="shop-story">Milk, curd, and time. Nothing else.</h2>
         <div class="split" style="margin-top: 34px">
           <div class="prose">
             <p>Every jar begins with milk from our own herd, collected the same morning it is churned. We let the milk set naturally into curd, then churn it slowly by hand until the butter separates and the ghee rises clear and golden.</p>
@@ -94,9 +74,9 @@
         </div>
       </section>
 
-      <section class="band band--paper" aria-labelledby="pdp-trust">
+      <section class="band band--paper" aria-labelledby="shop-trust">
         <p class="band__eyebrow">Why people come back</p>
-        <h2 class="band__title" id="pdp-trust">Purity you can check.</h2>
+        <h2 class="band__title" id="shop-trust">Purity you can check.</h2>
         <div class="trust-grid">
           <div class="trust-mark">
             <span class="trust-mark__icon" aria-hidden="true">01</span>
@@ -121,7 +101,7 @@
         </div>
       </section>
 
-      <section class="band" aria-labelledby="pdp-cta">
+      <section class="band" aria-labelledby="shop-cta">
         <div class="wa-panel">
           <div>
             <h2>Prefer to order on WhatsApp?</h2>
@@ -146,7 +126,9 @@
           <ul>
             <li><a href="/product.html?size=one-litre">1 Litre family jar</a></li>
             <li><a href="/product.html?size=half-litre">500 ml everyday jar</a></li>
-            <li><a href="/#shop">All products</a></li>
+            <li><a href="/product.html?size=butter">Cultured butter 500 g</a></li>
+            <li><a href="/product.html?size=curd">Set curd 800 g</a></li>
+            <li><a href="/product.html">All products</a></li>
           </ul>
         </div>
         <div>
@@ -172,7 +154,7 @@
       </div>
     </footer>
 
-    <script type="module" src="/src/product.js"></script>
+    <script type="module" src="/src/shop.js"></script>
     <script type="module" src="/src/site.js"></script>
   </body>
 </html>

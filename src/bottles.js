@@ -38,7 +38,41 @@ export function jarArt(id) {
   </svg>`;
 }
 
+/* Butter and curd come out of the same churn as the ghee, so they are shown in
+   the same squat glass jar rather than a bottle. The fill level is the only
+   difference between the two, which is what makes them read as a pair. */
+function tubArt(id, { label, sub, fill, fillTop, name }) {
+  return `<svg viewBox="0 0 200 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Uppalapati Farms ${name}">
+    ${gradients(id)}
+    <rect x="52" y="6" width="96" height="26" rx="9" fill="url(#lid-${id})" stroke="rgba(84,56,12,0.4)"/>
+    <g stroke="rgba(84,56,12,0.18)" stroke-width="2">
+      <line x1="66" y1="9" x2="66" y2="29"/>
+      <line x1="82" y1="9" x2="82" y2="29"/>
+      <line x1="100" y1="9" x2="100" y2="29"/>
+      <line x1="118" y1="9" x2="118" y2="29"/>
+      <line x1="134" y1="9" x2="134" y2="29"/>
+    </g>
+    <path d="M56,32 L144,32 L152,52 L48,52 Z" fill="#7c500c"/>
+    <rect x="34" y="50" width="132" height="150" rx="26" fill="url(#ghee-${id})" stroke="rgba(255,248,225,0.42)" stroke-width="2"/>
+    <rect x="${fill}" y="${fillTop}" width="${200 - fill * 2}" height="${206 - fillTop}" rx="10" fill="${name === 'set curd' ? '#fbf7ee' : '#f6d67d'}" opacity="0.94"/>
+    <ellipse cx="100" cy="50" rx="60" ry="8" fill="${name === 'set curd' ? '#ffffff' : '#f8d372'}" opacity="0.95"/>
+    <rect x="46" y="62" width="14" height="126" rx="7" fill="rgba(255,255,255,0.26)"/>
+    <rect x="42" y="118" width="116" height="70" rx="8" fill="#f6f1e7" stroke="rgba(58,44,18,0.14)"/>
+    <text x="100" y="140" text-anchor="middle" font-family="${LABEL_SERIF}" font-size="12" letter-spacing="1.4" font-weight="600" fill="#3a2c12">UPPALAPATI</text>
+    <text x="100" y="154" text-anchor="middle" font-family="${LABEL_SERIF}" font-size="9.5" letter-spacing="3.6" fill="#3a2c12">FARMS</text>
+    <line x1="68" y1="162" x2="132" y2="162" stroke="#c99537"/>
+    <text x="100" y="178" text-anchor="middle" font-family="${LABEL_SERIF}" font-size="10.5" letter-spacing="1.8" font-weight="700" fill="#3a2c12">${label}</text>
+    <text x="100" y="189" text-anchor="middle" font-family="${LABEL_SERIF}" font-size="6" letter-spacing="0.9" fill="#8c621f">${sub}</text>
+  </svg>`;
+}
+
 export function bottleArt(id, kind = 'bottle-1000') {
+  if (kind === 'butter-500') {
+    return tubArt(id, { name: 'cultured butter', label: 'CULTURED BUTTER', sub: '500 g • PREORDER', fill: 44, fillTop: 92 });
+  }
+  if (kind === 'curd-800') {
+    return tubArt(id, { name: 'set curd', label: 'SET CURD', sub: '800 g • PREORDER', fill: 40, fillTop: 70 });
+  }
   if (kind === 'bottle-500') {
     return `<svg viewBox="0 0 120 214" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Uppalapati Farms 500 ml ghee bottle">
       ${gradients(id)}

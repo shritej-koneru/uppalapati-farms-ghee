@@ -8,12 +8,15 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "lint": "eslint src",
-    "typecheck": "node --check src/main.js && node --check src/checkout.js && node --check src/catalogue.js && node --check src/bottles.js && node --check src/site.js && node --check src/business.js && node --check src/product.js && node --check src/contact.js"
+    "check": "npm run lint && npm run typecheck",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=ghee-client --branch=main",
+    "typecheck": "node scripts/check-syntax.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
     "eslint": "^9.31.0",
-    "vite": "^7.0.0"
+    "vite": "^7.0.0",
+    "wrangler": "^4.147.0"
   },
   "dependencies": {
     "lenis": "^1.3.26",

@@ -1,4 +1,4 @@
-import { products, currency, readCart, productArt } from './catalogue.js';
+import { products, currency, readCart, productArt, cartHasPreorder, PREORDER_NOTICE_DAYS } from './catalogue.js';
 
 const checkoutContent = document.querySelector('[data-checkout-content]');
 const checkoutDetails = document.querySelector('[data-checkout-details]');
@@ -9,9 +9,10 @@ const checkoutForm = document.querySelector('[data-checkout-form]');
 const checkoutSubmit = document.querySelector('[data-checkout-submit]');
 const checkoutStatus = document.querySelector('[data-checkout-status]');
 const checkoutConfirmation = document.querySelector('[data-checkout-confirmation]');
+const checkoutLead = document.querySelector('[data-checkout-lead]');
 
 function getCartEntries(cart) {
-  return Object.entries(cart).filter(([, quantity]) => quantity > 0);
+  return Object.entries(cart).filter(([key, quantity]) => quantity > 0 && key in products);
 }
 
 function getCartTotal(cart) {
@@ -29,6 +30,7 @@ function renderCheckout() {
         <p>${product.size}</p>
         <h2>${product.name}</h2>
         <span>${currency.format(product.price)} each</span>
+        ${product.preorder ? `<span class="checkout-summary__preorder">Preorder · ${PREORDER_NOTICE_DAYS} days notice</span>` : ''}
       </div>
       <span class="checkout-summary__quantity">×${quantity}</span>
     </article>`;
@@ -39,6 +41,14 @@ function renderCheckout() {
   checkoutDetails.hidden = isEmpty;
   checkoutForm.hidden = isEmpty;
   checkoutSubmit.disabled = isEmpty;
+
+  // Only warn about the lead time when the cart actually contains an item
+  // that needs it, so ready-stock orders are not delayed by this copy.
+  const needsLead = !isEmpty && cartHasPreorder(cart);
+  checkoutLead.hidden = !needsLead;
+  if (needsLead) {
+    checkoutLead.textContent = `Your cart includes a preorder item. Please allow ${PREORDER_NOTICE_DAYS} days before dispatch.`;
+  }
 }
 
 checkoutForm.addEventListener('submit', (event) => {

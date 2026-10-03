@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#080b09" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='16' fill='%23080b09'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='Arial' font-size='13' fill='%23d6a44b'%3EUF%3C/text%3E%3C/svg%3E" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/media/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/media/icon-512.png" />
+    <link rel="apple-touch-icon" href="/media/apple-touch-icon.png" />
+    <link rel="preload" as="image" href="/media/logo.png" />
     <meta name="description" content="Complete a test-only Uppalapati Farms ghee order. No payment is collected." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +18,7 @@
   <body class="checkout">
     <main class="checkout-page">
       <header class="checkout-page__header">
-        <a class="checkout-page__brand" href="/#top">Uppalapati Farms</a>
+        <a class="checkout-page__brand" href="/#top"><img class="checkout-page__logo" src="/media/logo.png" alt="" width="28" height="28" decoding="async" /><span>Uppalapati Farms</span></a>
         <a class="checkout-back" href="/#shop">Back to the shop <span aria-hidden="true">↗</span></a>
       </header>
 
@@ -30,6 +33,7 @@
             <p class="checkout-summary__label" id="checkout-summary-title">Selected products</p>
             <div class="checkout-summary__items" data-checkout-items></div>
             <p class="checkout-summary__empty" data-checkout-empty hidden>Your cart is empty. Return to the shop to choose a jar.</p>
+            <p class="checkout-summary__lead" data-checkout-lead hidden></p>
             <div class="checkout-summary__total"><span>Total</span><strong data-checkout-total>₹0</strong></div>
           </section>
 

@@ -1,4 +1,14 @@
-import { products, currency, cartStorageKey, readCart } from './catalogue.js';
+/* Aliased because this module already has locals named cartCount and cartTotal
+   for the badge and total elements; those shadow the imported helpers. */
+import {
+  products,
+  currency,
+  cartStorageKey,
+  readCart,
+  cartCount as countCartItems,
+  cartTotal as totalCartValue,
+  productArt,
+} from './catalogue.js';
 import { createJar3d } from './jar3d.js';
 
 const journeyStage = document.querySelector('[data-journey]');
@@ -394,12 +404,15 @@ function saveCart() {
   }
 }
 
+/* Both of these used to name the two ghee jars outright, so the landing page
+   cart showed nothing for butter or curd even once they had been added
+   elsewhere. They now read the whole catalogue like the shop page does. */
 function getCartCount() {
-  return cart['half-litre'] + cart['one-litre'];
+  return countCartItems(cart);
 }
 
 function getCartTotal() {
-  return cart['half-litre'] * products['half-litre'].price + cart['one-litre'] * products['one-litre'].price;
+  return totalCartValue(cart);
 }
 
 function renderCart() {
@@ -408,7 +421,7 @@ function renderCart() {
   cartItems.innerHTML = entries.map(([key, quantity]) => {
     const product = products[key];
     return `<div class="cart-item">
-      <img src="${product.image}" alt="" />
+      <img src="${product.image || productArt(key)}" alt="" />
       <div class="cart-item__details">
         <p>${product.size}</p>
         <span>${currency.format(product.price)} each</span>

@@ -1,8 +1,8 @@
 node_modules/
 dist/
-.vercel/
 
 # local tooling scratch dirs
+.wrangler/
 .playwright-mcp/
 artifacts/
 backups/
