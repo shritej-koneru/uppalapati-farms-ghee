@@ -84,6 +84,17 @@ To publish by hand instead, use `npm run deploy`, which runs
 updates; without it the upload becomes a preview deployment on a unique
 subdomain and the main domain is untouched.
 
+> **Careful when deploying locally.** Without `CLOUDFLARE_ACCOUNT_ID` set,
+> wrangler falls back to the OAuth login in the user profile. If that login
+> belongs to the *other* account, a manual deploy will silently publish to the
+> old site instead of failing, because a project named `ghee-client` exists in
+> both accounts. Set the account id first:
+>
+> ```
+> set CLOUDFLARE_ACCOUNT_ID=ab3aa5a41145b440d32ea33c2d886d5e
+> npm run deploy
+> ```
+
 To roll back, redeploy an earlier commit — Cloudflare Pages keeps every
 deployment addressable by id under the dashboard's Deployments tab.
 
