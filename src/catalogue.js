@@ -1,21 +1,30 @@
 import { bottleArt } from './bottles.js';
+import { pricing, pricingKeys, PREORDER_NOTICE_DAYS } from './pricing.js';
+
+export { PREORDER_NOTICE_DAYS };
+export { formatRupees } from './pricing.js';
 
 export const cartStorageKey = 'uppalapati-farms-cart';
 
 /* Butter and curd are made in the same churn as the ghee, in the same
    quantities, so neither can be held ready-made. Both are preorder-only and
    need two days notice. `preorder` is what the UI, cart and checkout read to
-   show that, so it lives here rather than being repeated per screen. */
-export const PREORDER_NOTICE_DAYS = 2;
+   show that, so it lives here rather than being repeated per screen.
 
-/* `pack` marks a product sold by weight rather than by jar, so the shop can show
+   The notice period, the names, the sizes and the prices all come from
+   `pricing.js`, which the order endpoint reads too — so the figure the customer
+   is quoted and the figure the farm records cannot drift apart. What is added
+   here is presentation: the photograph, the drawn fallback art, the card label
+   and the marketing copy.
+
+   `pack` marks a product sold by weight rather than by jar, so the shop can show
    a quantity stepper and work out the total weight. It carries the pack size
    and nothing about money.
 
    There is deliberately no second price here. `pack.packPrice` duplicated
    `product.price`, and the cart read one while the shop read the other, so
    changing a price in one place could leave the two quietly disagreeing. Every
-   figure now comes from `product.price`. */
+   figure now comes from `pricing.js`. */
 
 /* Every product photograph in `image` is delivered as a 4:5 canvas, matching
    the shop card's art box. The source photos were not all 4:5, so each one was
@@ -25,68 +34,73 @@ export const PREORDER_NOTICE_DAYS = 2;
    shared fill colour would have shown as bars. Nothing is cropped, so a jar
    can never lose its lid, and one ratio keeps the four cards the same height.
    A new photo needs the same treatment before it is dropped in here. */
-export const products = {
+/* Everything below is presentation only. Split out of the object literal that
+   assembles them so that adding a product means adding one entry to
+   `pricing.js` and one to each of these, rather than interleaving money and copy
+   in one long block.
+
+   These are declared before `products` on purpose. `const` bindings are in the
+   temporal dead zone until their declaration is evaluated, so building `products`
+   above them throws "Cannot access 'productPhotos' before initialization" the
+   moment the module loads — which it did, silently breaking the whole shop. */
+const productPhotos = {
+  'half-litre': '/media/ghee-half-litre.jpg',
+  'one-litre': '/media/ghee-1litre.jpg',
+  butter: '/media/butter-500g.jpg',
+  curd: '/media/curd-800g.jpg',
+};
+
+const productArtwork = {
+  'half-litre': 'bottle-500',
+  'one-litre': 'bottle-1000',
+  butter: 'butter-500',
+  curd: 'curd-800',
+};
+
+const productLabels = {
+  'half-litre': 'Everyday jar',
+  'one-litre': 'Family pack',
+  butter: 'Preorder',
+  curd: 'Preorder',
+};
+
+const productPacks = {
+  butter: { grams: 500, packLabel: '500 g block' },
+  curd: { grams: 800, packLabel: '800 g pot' },
+};
+
+const productCopy = {
   'half-litre': {
-    name: 'Half-litre ghee',
-    size: '500 ml',
-    price: 1999,
-    image: '/media/ghee-half-litre.jpg',
-    art: 'bottle-500',
-    label: 'Everyday jar',
     summary:
       'Our everyday jar for households that cook with ghee daily. Slow-churned from farm-fresh milk in small batches, then sealed the same week so it arrives with that warm, nutty aroma intact.',
     specs: [
       ['Net weight', '500 ml'],
-      ['Method', 'Bilona, hand-churned'],
+      ['Method', 'Bilona, slow-churned'],
       ['Shelf life', '9 months, unopened'],
       ['Storage', 'Keep away from direct sunlight'],
     ],
   },
   'one-litre': {
-    name: 'One-litre ghee',
-    size: '1 L',
-    price: 3999,
-    image: '/media/ghee-1litre.jpg',
-    art: 'bottle-1000',
-    label: 'Family pack',
     summary:
       'Our most loved jar. A full litre of traditional ghee, churned in a single slow batch and packed in food-grade glass so you can see exactly what you are cooking with.',
     specs: [
       ['Net weight', '1 litre'],
-      ['Method', 'Bilona, hand-churned'],
+      ['Method', 'Bilona, slow-churned'],
       ['Shelf life', '9 months, unopened'],
       ['Storage', 'Keep away from direct sunlight'],
     ],
   },
   butter: {
-    name: 'Cultured butter',
-    size: '500 g',
-    price: 1799,
-    image: '/media/butter-500g.jpg',
-    /* `art` stays as the fallback for a product whose photo ever goes missing;
-       the shop and cart both prefer `image` whenever it is set. */
-    art: 'butter-500',
-    label: 'Preorder',
-    preorder: true,
-    pack: { grams: 500, packLabel: '500 g block' },
     summary:
       'The butter that rises to the top of our churn before the ghee is drawn off, hand-collected and packed the same morning. Made in the same small quantities as the ghee, so it is never held in reserve.',
     specs: [
       ['Net weight', '500 g'],
-      ['Method', 'Bilona, hand-churned'],
+      ['Method', 'Bilona, slow-churned'],
       ['Availability', `Preorder, ${PREORDER_NOTICE_DAYS} days notice`],
       ['Storage', 'Refrigerate below 5°C'],
     ],
   },
   curd: {
-    name: 'Set curd',
-    size: '800 g',
-    price: 249,
-    image: '/media/curd-800g.jpg',
-    art: 'curd-800',
-    label: 'Preorder',
-    preorder: true,
-    pack: { grams: 800, packLabel: '800 g pot' },
     summary:
       'Thick curd set slow in clay pots from the same milk the ghee is churned from, which is why it keeps longer and tastes of curd rather than milk. Made fresh each day we churn.',
     specs: [
@@ -97,6 +111,22 @@ export const products = {
     ],
   },
 };
+
+/* Assembled last, from the money in `pricing.js` and the presentation above. */
+export const products = Object.fromEntries(
+  pricingKeys.map((key) => [
+    key,
+    {
+      ...pricing[key],
+      image: productPhotos[key],
+      art: productArtwork[key],
+      label: productLabels[key],
+      summary: productCopy[key].summary,
+      specs: productCopy[key].specs,
+      ...(productPacks[key] ? { pack: productPacks[key] } : {}),
+    },
+  ]),
+);
 
 export const productKeys = Object.keys(products);
 

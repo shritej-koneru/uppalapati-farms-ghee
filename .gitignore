@@ -13,3 +13,9 @@ backups/
 .env
 .env.*
 !.env.example
+
+# Wrangler reads local secrets from .dev.vars. The real values are Cloudflare
+# secrets, set with `wrangler pages secret put`; nothing sensitive is committed.
+.dev.vars
+.dev.vars.*
+!.dev.vars.example

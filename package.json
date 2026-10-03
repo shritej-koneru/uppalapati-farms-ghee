@@ -7,9 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "lint": "eslint src",
+    "lint": "eslint src functions",
     "check": "npm run lint && npm run typecheck",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name=ghee-client --branch=main",
+    "deploy": "npm run build && wrangler pages deploy --branch=main",
     "typecheck": "node scripts/check-syntax.mjs"
   },
   "devDependencies": {

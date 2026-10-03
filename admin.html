@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080b09" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/media/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/media/apple-touch-icon.png" />
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="description" content="Uppalapati Farms order book." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <title>Order book — Uppalapati Farms</title>
+  </head>
+  <body class="checkout">
+    <main class="checkout-page">
+      <header class="checkout-page__header">
+        <a class="checkout-page__brand" href="/#top"><img class="checkout-page__logo" src="/media/logo.png" alt="" width="28" height="28" decoding="async" /><span>Uppalapati Farms</span></a>
+        <a class="checkout-back" href="/">Back to the shop <span aria-hidden="true">↗</span></a>
+      </header>
+
+      <!-- Sign in. Shown until /api/session reports a valid session. -->
+      <section class="admin-login" data-admin-login hidden>
+        <h1>Order book.</h1>
+        <p>Enter the owner passphrase to see the orders customers have placed.</p>
+        <form class="checkout-form" data-login-form>
+          <label class="checkout-form__wide" for="passphrase">Passphrase
+            <input id="passphrase" name="passphrase" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="checkout-button checkout-form__submit" type="submit" data-login-submit>Sign in</button>
+          <p class="checkout-form__status" data-login-status aria-live="polite"></p>
+        </form>
+      </section>
+
+      <!-- Everything below is only rendered once the API has returned orders. -->
+      <div data-admin-app hidden>
+        <section class="admin-head">
+          <div>
+            <h1>Order book</h1>
+            <p data-admin-summary></p>
+          </div>
+          <button class="checkout-back" type="button" data-admin-signout>Sign out</button>
+        </section>
+
+        <section class="admin-panel" aria-labelledby="export-title">
+          <h2 id="export-title">Export to Excel</h2>
+          <p>
+            The sheet is encrypted in your browser before it is saved, using a passphrase you
+            choose here. The server never sees it and cannot recover it, so keep it somewhere safe —
+            without it the file cannot be opened by anyone, including us.
+          </p>
+          <div class="checkout-form">
+            <label class="checkout-form__wide" for="export-passphrase">Sheet passphrase
+              <input id="export-passphrase" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" />
+            </label>
+            <label class="checkout-form__wide" for="export-confirm">Confirm passphrase
+              <input id="export-confirm" type="password" autocomplete="new-password" minlength="8" />
+            </label>
+            <p class="checkout-form__note" data-export-status aria-live="polite"></p>
+            <button class="checkout-button checkout-form__submit" type="button" data-export-button>Download encrypted sheet</button>
+          </div>
+        </section>
+
+        <section class="admin-panel" aria-labelledby="open-title">
+          <h2 id="open-title">Open a saved sheet</h2>
+          <p>Choose a <code>.xlsx.enc</code> file you downloaded earlier and enter its passphrase to get the workbook back.</p>
+          <div class="checkout-form">
+            <label class="checkout-form__wide" for="open-file">Sealed sheet
+              <input id="open-file" type="file" accept=".enc,application/json" />
+            </label>
+            <label class="checkout-form__wide" for="open-passphrase">Sheet passphrase
+              <input id="open-passphrase" type="password" autocomplete="off" />
+            </label>
+            <p class="checkout-form__note" data-open-status aria-live="polite"></p>
+            <button class="checkout-button checkout-form__submit" type="button" data-open-button>Decrypt and download</button>
+          </div>
+        </section>
+
+        <section class="admin-orders" aria-labelledby="orders-title">
+          <h2 id="orders-title">Orders</h2>
+          <div data-admin-orders></div>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="/src/admin.js"></script>
+  </body>
+</html>

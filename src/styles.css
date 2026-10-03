@@ -1582,6 +1582,53 @@ body.is-ready .loading-screen {
   border-color: #d78376;
 }
 
+/* A server-side rejection is not a native validation failure, so it is marked
+   with aria-invalid instead of :user-invalid. Both get the same red underline so
+   a customer cannot tell which one caught the mistake — only that it did. */
+.checkout-form input[aria-invalid='true'],
+.checkout-form textarea[aria-invalid='true'] {
+  border-color: #d78376;
+}
+
+/* Sits under the date input and explains the window in words, because a `min`
+   attribute alone stops an invalid date without saying why it is invalid. */
+.checkout-form__hint {
+  grid-column: 1 / -1;
+  margin: -14px 0 0;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Per-field messages are inserted after the input, which puts them inside the
+   <label>. Without these overrides they would inherit the label's uppercase
+   monospace treatment and read as a field name rather than an explanation. */
+.checkout-form__error {
+  margin: 0;
+  color: #e8a396;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+}
+
+/* The honeypot is moved off-screen rather than hidden with display:none. A
+   display:none input is skipped by assistive tech and by most bots alike, which
+   would make the field useless; off-screen keeps it in the form's tab order for
+   anything that reads the DOM as markup. tabindex and aria-hidden keep it out of
+   a real customer's way. */
+.checkout-form__honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 .checkout-form__note,
 .checkout-form__status {
   margin: 0;
@@ -1627,6 +1674,34 @@ body.is-ready .loading-screen {
   line-height: 1.7;
 }
 
+/* The number we will message is the one thing the customer cannot verify after
+   the form is gone, so it is set larger than the surrounding prose rather than
+   left as an unremarkable sentence. */
+.checkout-confirmation__number {
+  padding: 18px 22px;
+  border-left: 2px solid var(--gold);
+  background: rgba(201, 168, 106, 0.06);
+}
+
+.checkout-confirmation__number strong {
+  color: var(--cream);
+  font-family: var(--mono);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.checkout-confirmation__lead {
+  color: var(--cream) !important;
+}
+
+.checkout-confirmation__lead + .checkout-confirmation__number {
+  margin-top: 20px !important;
+}
+
+.checkout-confirmation p strong {
+  color: var(--cream);
+}
+
 .checkout-confirmation a {
   display: inline-flex;
   align-items: center;
@@ -1645,6 +1720,157 @@ body.is-ready .loading-screen {
 .checkout-confirmation a:hover,
 .checkout-confirmation a:focus-visible {
   transform: translateY(-2px);
+}
+
+/* ---------- Owner order book (/admin) ----------
+
+   Plain and dense. This page is read on a phone, in a hurry, next to a stack of
+   jars — it is a working list rather than a shopfront, so it skips the display
+   type and uses the same form controls as checkout. */
+
+.admin-login,
+[data-admin-app] {
+  padding: clamp(40px, 6vw, 80px) 0 clamp(60px, 9vw, 120px);
+}
+
+.admin-login {
+  max-width: 460px;
+}
+
+.admin-login h1 {
+  margin-bottom: 18px;
+  color: var(--cream);
+}
+
+.admin-login > p {
+  margin-bottom: 34px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.admin-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 44px;
+}
+
+.admin-head h1 {
+  color: var(--cream);
+}
+
+.admin-head p {
+  margin-top: 12px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+/* Reuses the back-link as a button so sign-out matches the site's own controls
+   without needing a second styled button variant. */
+.checkout-back[data-admin-signout] {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.admin-panel {
+  max-width: 720px;
+  margin-bottom: 40px;
+  padding: 30px 32px;
+  border: 1px solid var(--line);
+}
+
+.admin-panel h2 {
+  margin-bottom: 14px;
+  color: var(--cream);
+  font-size: 1.15rem;
+}
+
+.admin-panel > p {
+  margin-bottom: 24px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+.admin-panel .checkout-form__note {
+  margin: 0;
+}
+
+.admin-panel code {
+  color: var(--cream);
+  font-family: var(--mono);
+  font-size: 0.85em;
+}
+
+.admin-orders h2 {
+  margin-bottom: 24px;
+  color: var(--cream);
+  font-size: 1.15rem;
+}
+
+.admin-empty {
+  padding: 30px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.admin-order {
+  padding: 22px 0;
+  border-top: 1px solid var(--line);
+}
+
+.admin-order header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-order h3 {
+  color: var(--gold-light);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+
+.admin-order__total {
+  color: var(--cream);
+  font-family: var(--mono);
+  font-size: 0.95rem;
+}
+
+.admin-order p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.admin-order__name {
+  color: var(--cream) !important;
+}
+
+.admin-order__items,
+.admin-order__meta {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+/* Honeypot hits are still real orders and must not be hidden — they are marked
+   so the owner can tell them apart at a glance. */
+.admin-order--flagged {
+  padding-left: 16px;
+  border-left: 2px solid #d78376;
 }
 
 /* ---------- No-js / reduced-motion fallbacks ---------- */

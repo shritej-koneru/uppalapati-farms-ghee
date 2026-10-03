@@ -1,0 +1,14 @@
+# Copy to .dev.vars and fill in. Never commit .dev.vars itself.
+#
+# ORDER_ADMIN_PASSPHRASE_HASH
+#   SHA-256 hex digest of the owner passphrase. Generate with:
+#     node -e "console.log(require('crypto').createHash('sha256').update('YOUR-PASSPHRASE').digest('hex'))"
+#   The passphrase itself is never stored, only this digest.
+#
+# ORDER_SESSION_SECRET
+#   32 random bytes, base64url. Signs the owner's session cookie. Generate with:
+#     node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+#   Changing it signs every owner out. Nothing else depends on it.
+
+ORDER_ADMIN_PASSPHRASE_HASH=
+ORDER_SESSION_SECRET=

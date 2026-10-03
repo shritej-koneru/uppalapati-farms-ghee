@@ -1,0 +1,24 @@
+# Wrangler configuration for the Cloudflare Pages project.
+#
+# The site itself is built by Vite into `dist/`. The order endpoint in
+# `functions/` is deployed alongside that output, so the shop stays a static
+# site with no server to run — but it now has somewhere to record an order.
+#
+# `wrangler pages deploy` reads the project name, the output directory and the
+# D1 binding from this file. The deploy script in package.json passes no
+# arguments for exactly that reason: one place decides where the site goes.
+#
+# The account is deliberately NOT pinned here. `wrangler` resolves it from
+# CLOUDFLARE_ACCOUNT_ID, or falls back to whichever OAuth login it has cached —
+# which on this machine is an older account with no pages.dev subdomain to
+# reclaim. Set the variable before running a manual deploy, or publish to the
+# wrong place. GitHub Actions sets it from a repository secret.
+
+name = "ghee-client"
+compatibility_date = "2026-10-03"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "GHEE_ORDERS"
+database_name = "ghee-orders"
+database_id = "5bb0a8ee-c8ae-4499-b013-32dcf6b8ca1c"
