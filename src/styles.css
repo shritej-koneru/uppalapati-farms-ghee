@@ -959,7 +959,11 @@ body.is-ready .loading-screen {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: min(44vh, 430px);
+  /* Height is the image's own width scaled by 4/5, so the box is always 4:5 and
+     the `cover` below never has anything to cut. It used to be min(44vh, 430px),
+     which drifts wider than 4:5 on short screens — a 1280x720 laptop gave a
+     330x317 box — and the jar lost its top and bottom to the crop. */
+  height: min(32.5vw, 412px);
 }
 
 .product-option__art img {
@@ -1194,7 +1198,10 @@ body.is-ready .loading-screen {
 
 .cart-item img {
   width: 64px;
-  height: 64px;
+  /* 4/5 rather than a square: the thumbnails are `cover`, and a square box cut
+     10% off each side of a 4:5 photograph, which took the edge off the jar. */
+  height: auto;
+  aspect-ratio: 4 / 5;
   object-fit: cover;
   border-radius: 8px;
   background: var(--paper);
@@ -1436,7 +1443,8 @@ body.is-ready .loading-screen {
 
 .checkout-summary__item img {
   width: 76px;
-  height: 76px;
+  height: auto;
+  aspect-ratio: 4 / 5;
   object-fit: cover;
   border-radius: 8px;
   background: var(--paper);
@@ -2629,12 +2637,18 @@ body.page-body {
 }
 
 /* Capped rather than stretched. Once the open card spans the full row, an
-   uncapped 3-up strip of squares grew to roughly 400px tall on its own and
-   made the expanded panel taller than the viewport. These are process shots,
-   not the product, so they stay small. */
+   uncapped strip grew to roughly 400px tall on its own and made the expanded
+   panel taller than the viewport. It used to hold three ghee process frames,
+   which meant the butter and curd cards were showing shots of ghee; it is now
+   the one shot of the whole range, which applies to all four products.
+
+   The image keeps its own shape rather than being forced into 4/3 and cropped.
+   This is the one slot that takes the landscape group photo, and the other
+   three slots all want 4:5, so a fixed ratio here only ever had something to
+   cut. */
 .shop-card__gallery {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   max-width: 560px;
   margin-top: 22px;
@@ -2642,8 +2656,7 @@ body.page-body {
 
 .shop-card__gallery img {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+  height: auto;
   border-radius: 8px;
 }
 
@@ -3189,8 +3202,10 @@ body.page-body {
     padding: 0 12px 92px;
   }
 
+  /* Same 4/5 relationship as the desktop rule above, against the 42vw width
+     this breakpoint gives the image. */
   .product-option__art {
-    height: min(30vh, 300px);
+    height: min(52.5vw, 312px);
   }
 
   .product-option__art img {
@@ -3231,7 +3246,7 @@ body.page-body {
 
   .cart-item img {
     width: 58px;
-    height: 58px;
+    height: auto;
   }
 
   .quantity-control {

@@ -7,7 +7,7 @@ import {
   readCart,
   cartCount as countCartItems,
   cartTotal as totalCartValue,
-  productArt,
+  productImage,
 } from './catalogue.js';
 import { createJar3d } from './jar3d.js';
 
@@ -138,11 +138,11 @@ function startLoadingScreen() {
 }
 
 function preloadAssets() {
-  // The 500ml still is no longer listed: it is a real <img> in the markup now,
-  // lazy, and is the fallback only if three.js or WebGL is refused. Preloading
-  // it here would put 753 kB in front of the first paint for a jar most
-  // visitors never scroll down to.
-  const images = ['/media/film-poster.jpg', '/media/ghee-jar-100ml.jpg'];
+  // Both ghee jars are real <img> elements in the markup now and load lazily;
+  // the film poster is not in the markup at all, so it is fetched here. The
+  // half-litre photo is warmed only because it is the first card a visitor is
+  // likely to scroll to.
+  const images = ['/media/film-poster.jpg', '/media/ghee-half-litre.jpg'];
   let pending = images.length + 1;
 
   const settle = () => {
@@ -439,7 +439,7 @@ function renderCart() {
   cartItems.innerHTML = entries.map(([key, quantity]) => {
     const product = products[key];
     return `<div class="cart-item">
-      <img src="${product.image || productArt(key)}" alt="" />
+      <img src="${productImage(key)}" alt="" />
       <div class="cart-item__details">
         <p>${product.size}</p>
         <span>${currency.format(product.price)} each</span>

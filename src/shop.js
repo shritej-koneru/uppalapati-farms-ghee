@@ -2,7 +2,8 @@ import {
   products,
   productKeys,
   currency,
-  productArt,
+  productImage,
+  groupImage,
   packFor,
   packTotalGrams,
   packTotalPrice,
@@ -27,7 +28,9 @@ const grid = document.querySelector('[data-shop-grid]');
 const leadNotice = document.querySelector('[data-shop-lead]');
 const daysSlots = [...document.querySelectorAll('[data-preorder-days]')];
 
-const gallery = ['/media/ghee-frame-02.jpg', '/media/ghee-frame-05.jpg', '/media/ghee-frame-08.jpg'];
+/* What the expanded panel shows beneath the product. One shot of the whole
+   range, the same for every card. */
+const gallery = [groupImage];
 
 const MIN_BLOCKS = 1;
 const MAX_BLOCKS = 9;
@@ -89,10 +92,11 @@ function readoutText(key, blocks) {
 
 function artMarkup(key) {
   const product = products[key];
-  // Prefer a real photograph. Butter and curd have none yet, so they fall back
-  // to the drawn art rather than borrowing the ghee jar's photo.
+  // All four are photographed now. `art` is kept as the fallback for a product
+  // whose photo ever goes missing, so the card still draws something of its own
+  // rather than borrowing the ghee jar's picture.
   const isDrawn = !product.image;
-  const source = product.image || productArt(key);
+  const source = productImage(key);
   const alt = `${product.name} in a ${product.size} ${isDrawn ? 'tub' : 'jar'}`;
   return `<img class="${isDrawn ? 'shop-card__drawn' : ''}" src="${source}" alt="${escapeHtml(alt)}" loading="lazy" />`;
 }
@@ -112,13 +116,12 @@ function stepperMarkup(key) {
       </div>`;
 }
 
-function galleryMarkup(key) {
-  const product = products[key];
+function galleryMarkup() {
   return `<div class="shop-card__gallery">
         ${gallery
           .map(
-            (src, index) =>
-              `<img src="${src}" alt="Uppalapati Farms ${escapeHtml(product.name)}, view ${index + 1}" loading="lazy" />`,
+            (src) =>
+              `<img src="${src}" alt="The whole range together: one-litre ghee, half-litre ghee, a 500 g block of butter and an 800 g pot of curd" loading="lazy" />`,
           )
           .join('')}
       </div>`;
@@ -160,7 +163,7 @@ function cardMarkup(key) {
               ? `<p class="shop-card__preorder">${escapeHtml(product.name)} is made on the days we churn. Please allow ${PREORDER_NOTICE_DAYS} days before the date you need it.</p>`
               : ''
           }
-          ${isOpen ? galleryMarkup(key) : ''}
+          ${isOpen ? galleryMarkup() : ''}
         </div>
       </article>`;
 }

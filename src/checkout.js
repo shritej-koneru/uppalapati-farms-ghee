@@ -1,4 +1,4 @@
-import { products, currency, readCart, productArt, cartHasPreorder, PREORDER_NOTICE_DAYS } from './catalogue.js';
+import { products, currency, readCart, productImage, cartHasPreorder, PREORDER_NOTICE_DAYS } from './catalogue.js';
 
 const checkoutContent = document.querySelector('[data-checkout-content]');
 const checkoutDetails = document.querySelector('[data-checkout-details]');
@@ -25,7 +25,7 @@ function renderCheckout() {
   checkoutItems.innerHTML = entries.map(([key, quantity]) => {
     const product = products[key];
     return `<article class="checkout-summary__item">
-      <img src="${productArt(key)}" alt="" />
+      <img src="${productImage(key)}" alt="" />
       <div>
         <p>${product.size}</p>
         <h2>${product.name}</h2>

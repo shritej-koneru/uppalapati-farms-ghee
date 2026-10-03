@@ -17,12 +17,20 @@ export const PREORDER_NOTICE_DAYS = 2;
    changing a price in one place could leave the two quietly disagreeing. Every
    figure now comes from `product.price`. */
 
+/* Every product photograph in `image` is delivered as a 4:5 canvas, matching
+   the shop card's art box. The source photos were not all 4:5, so each one was
+   padded out to the ratio by repeating its own outermost row and column rather
+   than by cropping it or letterboxing it against a flat colour: the studio
+   backdrop runs to the edge of each frame but differs between them, so any
+   shared fill colour would have shown as bars. Nothing is cropped, so a jar
+   can never lose its lid, and one ratio keeps the four cards the same height.
+   A new photo needs the same treatment before it is dropped in here. */
 export const products = {
   'half-litre': {
     name: 'Half-litre ghee',
     size: '500 ml',
     price: 1999,
-    image: '/media/ghee-jar-100ml.jpg',
+    image: '/media/ghee-half-litre.jpg',
     art: 'bottle-500',
     label: 'Everyday jar',
     summary:
@@ -38,7 +46,7 @@ export const products = {
     name: 'One-litre ghee',
     size: '1 L',
     price: 3999,
-    image: '/media/ghee-jar-500ml.jpg',
+    image: '/media/ghee-1litre.jpg',
     art: 'bottle-1000',
     label: 'Family pack',
     summary:
@@ -54,9 +62,9 @@ export const products = {
     name: 'Cultured butter',
     size: '500 g',
     price: 1799,
-    /* No photograph yet, so `image` is omitted on purpose and the rendered
-       art in bottles.js stands in for it. Point this at a real photo when
-       one exists; the shop prefers `image` whenever it is set. */
+    image: '/media/butter-500g.jpg',
+    /* `art` stays as the fallback for a product whose photo ever goes missing;
+       the shop and cart both prefer `image` whenever it is set. */
     art: 'butter-500',
     label: 'Preorder',
     preorder: true,
@@ -74,6 +82,7 @@ export const products = {
     name: 'Set curd',
     size: '800 g',
     price: 249,
+    image: '/media/curd-800g.jpg',
     art: 'curd-800',
     label: 'Preorder',
     preorder: true,
@@ -102,6 +111,20 @@ export function productArt(key) {
   if (!product) return '';
   return `data:image/svg+xml,${encodeURIComponent(bottleArt(key, product.art))}`;
 }
+
+/* A product's photograph when it has one, otherwise the drawn art. Every screen
+   resolves its image through here so the rule is stated once. The cart and the
+   shop already preferred the photograph; the checkout was calling `productArt`
+   directly and so drew a ghee jar where the cart showed a photograph of one. */
+export function productImage(key) {
+  return products[key]?.image || productArt(key);
+}
+
+/* The one photograph that belongs to no single product: all four together. It
+   is landscape, which is what the expanded shop panel wants, and it replaces a
+   strip of ghee-only process frames that used to sit there — frames the butter
+   and curd cards were also being shown, which was simply wrong for them. */
+export const groupImage = '/media/ghee-group.jpg';
 
 /* ---------- Pack maths ----------
 
