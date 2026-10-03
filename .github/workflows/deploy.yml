@@ -26,11 +26,14 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      # v5 is the first of these to run on Node 24. GitHub now deprecates the
+      # Node 20 runtime that v4 targets and force-runs it anyway, so v4 works
+      # but warns on every run.
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           # Vite 7 refuses to run on anything below 20.19, so pin the major
           # rather than letting setup-node guess.
