@@ -67,7 +67,6 @@ let activeCaption = null;
 let seekTarget = -1;
 let lastSeekTime = -1;
 let jarTurnFraction = null;
-let jar3dStarted = false;
 let lastLabelFacingFront = null;
 let isReducedMotion = motionQuery.matches;
 let assetsDone = false;
@@ -239,6 +238,31 @@ const jar3d = jarCanvas
     })
   : null;
 
+/* Kick the jar's download off as soon as the browser goes idle after first
+   paint, rather than when the stage scrolls into view. It used to wait for
+   exactly that, so anyone who scrolled to the stage spent their first seconds
+   there looking at a still frame while a 15.6 MiB model fetched behind them,
+   and the swap landed once the section had already been framed.
+
+   Rendering is still gated on visibility (see updateProductStage), so this buys
+   a head start on the download without costing a frame while the stage is off
+   screen. jar3d.start() is itself idempotent, so nothing else has to guard it.
+
+   The timeout is the half that matters: requestIdleCallback alone waits as long
+   as the main thread stays busy, and decoding the opening of the film keeps it
+   busy for the first few seconds. The cap makes the start predictable without
+   putting 16 MiB in front of the first paint. */
+if (jar3d) {
+  const beginJar3dLoad = () => jar3d.start();
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(beginJar3dLoad, { timeout: 2000 });
+  } else {
+    // Safari only gained requestIdleCallback in 16.4, and a jar that never
+    // loads is worse than one that loads a moment late.
+    window.setTimeout(beginJar3dLoad, 1);
+  }
+}
+
 function updateProductStage() {
   const progress = getSectionProgress(productStage);
   const revealProgress = easeInOut(clamp((progress - 0.1) / 0.5, 0, 1));
@@ -267,19 +291,13 @@ function updateProductStage() {
   productStage.style.setProperty('--facts-y', `${((factsA - 1) * 16).toFixed(2)}px`);
   const rect = productStage.getBoundingClientRect();
   const stageNear = rect.bottom > -window.innerHeight * 0.5 && rect.top < window.innerHeight * 1.5;
-  // Deliberately not gated on revealProgress: that is the fly-in animation, and
-  // it is still 0 where the jar is first framed, which froze it on frame 0.
-  // Both the load and the per-frame work are gated on stageNear, so the jar
-  // costs nothing until it is on its way into view.
-  if (jar3d && stageNear) {
-    if (!jar3dStarted) {
-      jar3dStarted = true;
-      jar3d.start();
-    }
-    jar3d.setActive(true);
-  } else {
-    jar3d?.setActive(false);
-  }
+  // Rendering only. The load is no longer gated here: it starts once at
+  // startup, so a jar that has been fetched while the stage was still below the
+  // fold costs nothing per frame here and is simply waiting when it arrives.
+  // Deliberately still not gated on revealProgress: that is the fly-in
+  // animation, and it is 0 where the jar is first framed, which would freeze
+  // the turntable on frame 0.
+  jar3d?.setActive(stageNear);
 }
 
 /* ---------- Jar label swap ---------- */

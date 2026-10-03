@@ -4,10 +4,17 @@
    turning on a turntable, 8.033s per revolution. It is now the real model,
    lit and turned at runtime, and it can be turned by hand.
 
-   three.js and the GLB are both fetched on demand. The product stage sits
-   three viewports below the fold and the film above it is 21 MiB, so pulling
-   ~16 MiB of jar eagerly would put it in front of the first paint for a scene
-   most visitors only reach after scrolling past the whole film. */
+   three.js and the GLB are both fetched from separate chunks, so the jar costs
+   nothing until the page asks for it. The fetch is kicked off as soon as the
+   browser goes idle after first paint, not when the stage scrolls into view:
+   the stage sits three viewports below the fold, so deferring the load until
+   then meant anyone who reached it had already been staring at a still frame
+   of a jar that was downloading behind them, and the swap landed after the
+   section had been framed. Fetching early does compete for bandwidth with the
+   21 MiB film above it, which is the price of being ready when they arrive.
+
+   Rendering stays gated on the stage being near the viewport, so a jar loaded
+   off screen costs one download and no frames at all. */
 
 const MODEL_SRC = '/media/jar-3d.glb';
 
@@ -59,6 +66,9 @@ export function createJar3d({ canvas, onReady, onFail, onFraction }) {
   let failed = false;
   let wantsActive = false;
   let reducedMotion = false;
+  // The measured size of the loaded model, kept so the camera can be re-fitted
+  // whenever the box changes shape. Null until the GLB lands.
+  let modelSize = null;
 
   // One number is the jar's orientation, and everything that can turn it - the
   // clock and the pointer - moves this one number. The turn is deliberately not
@@ -96,6 +106,13 @@ export function createJar3d({ canvas, onReady, onFail, onFraction }) {
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    // Re-fit the camera on every resize, not only on load. The load can finish
+    // while the stage is still off screen, where this call has to give up on a
+    // zero-sized box; the camera distance is derived from the aspect ratio, so a
+    // frame fitted against the wrong aspect would otherwise keep that wrong
+    // distance for the life of the page.
+    if (modelSize) frameToBounds(modelSize);
+    needsRender = true;
   }
 
   // Frame the model from its own bounds rather than from hard-coded numbers,
@@ -232,6 +249,9 @@ export function createJar3d({ canvas, onReady, onFail, onFraction }) {
         pivot.add(gltf.scene);
         scene.add(pivot);
 
+        // Kept for every later resize to re-fit the camera against; see resize().
+        modelSize = size;
+
         // The backing store has to be sized off layout, and the only reliable
         // moment for that is when layout exists. A ResizeObserver covers the
         // first size, a late reflow, and every later window size, instead of a
@@ -240,7 +260,6 @@ export function createJar3d({ canvas, onReady, onFail, onFraction }) {
         // long as the page, so the observer is never torn down.
         new ResizeObserver(resize).observe(canvas);
         resize();
-        frameToBounds(size);
 
         // The markup label describes what the jar is, and stays true with no JS
         // at all. Only now that it can be turned by hand does it promise how.
