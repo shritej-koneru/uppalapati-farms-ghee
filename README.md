@@ -63,24 +63,39 @@ npm run deploy    build, then publish dist/ to Cloudflare Pages
 
 ## Deploying
 
-**This project has no Git provider attached to its Cloudflare Pages project.**
-Pushing to GitHub does not deploy anything. Publishing is a manual upload:
+Pushing to `main` deploys automatically. The GitHub Actions workflow at
+`.github/workflows/deploy.yml` builds and publishes to Cloudflare Pages, so
+`https://ghee-client-2au.pages.dev` always reflects the latest commit.
 
-```
-npm run deploy
-```
+The workflow authenticates with two repository secrets, both set on
+`shritej-koneru/ghee-client`:
 
-which runs `wrangler pages deploy dist --project-name=ghee-client --branch=main`.
+| Secret | Value |
+| --- | --- |
+| `CLOUDFLARE_ACCOUNT_ID` | `ab3aa5a41145b440d32ea33c2d886d5e` |
+| `CLOUDFLARE_API_TOKEN` | a User API Token with **Cloudflare Pages: Edit** and **Account Settings: Read**, scoped to Lolgamer12121245555@gmail.com's Account |
 
-`--branch=main` is what makes it a Production deployment, so `ghee-client.pages.dev`
-updates. Without it the upload becomes a preview deployment on a unique subdomain
-and the main domain is untouched.
+Both permissions are required. `Cloudflare Pages: Edit` alone fails with
+`code: 10000`, because wrangler reads the account record before it uploads.
 
-Wrangler authenticates through an OAuth token in the user profile, not an env var.
-The first run in a new environment will need `wrangler login`.
+To publish by hand instead, use `npm run deploy`, which runs
+`wrangler pages deploy dist --project-name=ghee-client --branch=main`.
+`--branch=main` is what makes it a Production deployment, so the main domain
+updates; without it the upload becomes a preview deployment on a unique
+subdomain and the main domain is untouched.
 
 To roll back, redeploy an earlier commit — Cloudflare Pages keeps every
 deployment addressable by id under the dashboard's Deployments tab.
+
+### A note on the subdomain
+
+The project is named `ghee-client`, but its address is
+**`ghee-client-2au.pages.dev`**, not `ghee-client.pages.dev`. `pages.dev`
+subdomains are globally unique, and the plain `ghee-client` subdomain is held
+by a different Cloudflare account (`kkarthikeya54@gmail.com`, account
+`73413827ea…`), which still serves an older copy of this site. Cloudflare
+cannot transfer a Pages project between accounts, so the `-2au` suffix is
+permanent unless the other account releases the subdomain.
 
 ## Logo
 
