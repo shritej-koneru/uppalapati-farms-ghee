@@ -1,0 +1,54 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets a deploy be re-run by hand from the Actions tab, which is how you
+  # confirm the setup after adding the secrets without needing a fresh commit.
+  workflow_dispatch:
+
+# Read the repo, publish the site. Nothing else.
+permissions:
+  contents: read
+
+# If a second push lands while a deploy is still running, replace the running
+# one rather than queueing behind it. Without this a rapid series of pushes
+# deploys stale builds in the order they finished rather than the order they
+# were pushed.
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # Vite 7 refuses to run on anything below 20.19, so pin the major
+          # rather than letting setup-node guess.
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Deliberately the same script as the local deploy rather than a
+      # reimplementation of it. If the build or deploy flags ever change, this
+      # picks them up from package.json instead of drifting out of sync here.
+      - name: Build and deploy
+        run: npm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # Wrangler cannot infer which account an API token belongs to, so
+          # unlike a local login it has to be told.
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Keeps wrangler from phoning home during CI. Not required, just quiet.
+          WRANGLER_SEND_METRICS: 'false'
