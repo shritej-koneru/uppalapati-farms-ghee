@@ -1,9 +1,8 @@
 import { products, currency, PREORDER_NOTICE_DAYS } from './catalogue.js';
 
 /* ---------- Business profile ----------
-   Values marked TODO are still demo placeholders and must be replaced
-   with the client's real details before this goes live — no other file
-   needs to change. */
+   Values marked TODO are still placeholders and must be replaced
+   with the client's real details — no other file needs to change. */
 
 export const business = {
   name: 'Uppalapati Farms',
@@ -16,8 +15,6 @@ export const business = {
   address: '1-37, Uppalapati Nagar, Poranki (Rural), Penamaluru, Krishna District, Andhra Pradesh 521137',
   hours: 'Monday to Saturday, 9am – 7pm IST', // TODO confirm hours
   fssai: 'FSSAI Reg. No. 20126121000520',
-  // Shown as a demo notice wherever enquiries are collected.
-  demoNotice: 'This is a design demo. No order or payment is processed.',
 };
 
 /* ---------- FSSAI registration ----------

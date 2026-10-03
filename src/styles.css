@@ -3060,13 +3060,6 @@ body.page-body {
   text-transform: uppercase;
 }
 
-.demo-tag {
-  padding: 4px 10px;
-  color: var(--gold-light);
-  border: 1px solid rgba(201, 149, 55, 0.4);
-  border-radius: 999px;
-}
-
 /* ---------- Responsive ---------- */
 
 @media (max-width: 860px) {

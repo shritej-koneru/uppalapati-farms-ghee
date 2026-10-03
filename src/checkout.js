@@ -62,7 +62,7 @@ checkoutForm.addEventListener('submit', (event) => {
   const formData = new window.FormData(checkoutForm);
   const name = String(formData.get('fullName') || '').trim();
   checkoutForm.reset();
-  checkoutStatus.textContent = name ? `Thanks, ${name}. Your test order is noted.` : 'Your test order is noted.';
+  checkoutStatus.textContent = name ? `Thank you, ${name}. We have your details and will call you shortly.` : 'We have your details and will call you shortly.';
   checkoutContent.hidden = true;
   checkoutConfirmation.hidden = false;
   checkoutConfirmation.focus();
