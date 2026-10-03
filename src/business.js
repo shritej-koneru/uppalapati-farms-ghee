@@ -9,8 +9,8 @@ export const business = {
   name: 'Uppalapati Farms',
   tagline: 'Ghee, made slowly.',
   // wa.me needs country code + number with no +, spaces, or dashes.
-  whatsappNumber: '919000000000', // TODO real number
-  phoneDisplay: '+91 90000 00000', // TODO real number
+  whatsappNumber: '919908854444',
+  phoneDisplay: '+91 99088 54444',
   email: 'hello@uppalapatifarms.example', // TODO real address
   // Registered premises, as printed on the FSSAI registration certificate.
   address: '1-37, Uppalapati Nagar, Poranki (Rural), Penamaluru, Krishna District, Andhra Pradesh 521137',
