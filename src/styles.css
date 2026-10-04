@@ -8,6 +8,8 @@
   --gold: #c99537;
   --gold-light: #f1d28b;
   --gold-deep: #7a551a;
+  --wa-fill: #d9c48a;
+  --wa-ink: #1d1206;
   --line: rgba(246, 241, 231, 0.18);
   --sans: 'Outfit', 'Helvetica Neue', Arial, sans-serif;
   --serif: 'Cormorant Garamond', Georgia, serif;
@@ -1047,9 +1049,7 @@ body.is-ready .loading-screen {
 }
 
 .product-option__button:hover,
-.product-option__button:focus-visible,
-.checkout-button:hover,
-.checkout-button:focus-visible {
+.product-option__button:focus-visible {
   color: var(--ink);
   background: var(--gold-light);
   transform: translateY(-2px);
@@ -1306,9 +1306,46 @@ body.is-ready .loading-screen {
 
 .checkout-button {
   width: 100%;
+
+  /* Outlined in the WhatsApp button's own gold, because it sits on dark panels.
+     It used to be a solid `var(--ink)` block, which in the cart dialog is
+     #111510 against a #111713 panel — a button drawn in almost exactly the
+     colour of the thing behind it, so it read as a gap rather than as something
+     to press. The gold ring is what makes it stand out, and it is deliberately
+     the same gold as the WhatsApp button beside it so the pair reads as one
+     family rather than as two unrelated buttons. */
+  border: 1px solid var(--wa-fill);
+  color: var(--wa-fill);
+  background: transparent;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease,
+    transform 180ms var(--ease-out);
 }
 
+/* Hovered or focused: the inverse. Filled with the WhatsApp gold and ringed in
+   black, which is the only edge that reads against a filled gold — the panel
+   behind is #111713, and a dark border on a dark panel is not a border.
+
+   Keyboard focus gets the same treatment, so tabbing onto the button shows
+   exactly what hovering it does. Focus still also draws the site's outline; the
+   two together are the point, not a duplication. */
+.checkout-button:hover,
+.checkout-button:focus-visible {
+  border-color: #000;
+  color: var(--wa-ink);
+  background: var(--wa-fill);
+  transform: translateY(-2px);
+}
+
+/* A disabled button states the resting colours as well as the opacity. Without
+   them, `:hover` still matched — a disabled button can be hovered — and the
+   "Request this order" button filled with gold over a form the customer has not
+   finished, which invites a click that does nothing. This rule comes after the
+   hover rule and has the same specificity, so declaring them here is what makes
+   the disabled state look disabled. */
 .checkout-button:disabled {
+  border-color: var(--wa-fill);
+  color: var(--wa-fill);
+  background: transparent;
   cursor: not-allowed;
   opacity: 0.35;
   transform: none;
@@ -3901,8 +3938,8 @@ body.page-body {
   gap: 11px;
   min-height: 52px;
   padding: 0 28px;
-  color: #1d1206;
-  background: #d9c48a;
+  color: var(--wa-ink);
+  background: var(--wa-fill);
   font-family: var(--mono);
   font-size: 0.62rem;
   letter-spacing: 0.12em;
@@ -3913,7 +3950,7 @@ body.page-body {
 
 .wa-button:hover,
 .wa-button:focus-visible {
-  color: #1d1206;
+  color: var(--wa-ink);
   background: var(--gold-light);
   transform: translateY(-2px);
 }
