@@ -101,12 +101,15 @@ function escapeHtml(value) {
 function formatWhen(iso) {
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) return iso;
+  /* h23 rather than a bare hour12:false, which renders midnight as "24" in some
+     locales. Matches the 24-hour "Placed (IST)" column in the sheet. */
   return `${parsed.toLocaleString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    hourCycle: 'h23',
     timeZone: 'Asia/Kolkata',
   })} IST`;
 }
