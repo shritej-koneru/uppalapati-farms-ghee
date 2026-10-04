@@ -201,7 +201,7 @@ export async function findByRequestKey(env, requestKey) {
 export async function listOrders(env) {
   const result = await env.GHEE_ORDERS.prepare(
     `SELECT reference, created_at, full_name, mobile, email, address, city, state,
-            pincode, delivery_date, item_summary, total, has_preorder, notified, flagged
+            pincode, delivery_date, items, item_summary, total, has_preorder, notified, flagged
        FROM orders
       ORDER BY created_at DESC`,
   ).all();

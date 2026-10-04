@@ -45,6 +45,18 @@ function saveBlob(bytes, filename, type) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
+/* ---------- The order table ----------
+
+   A row per order, scannable without scrolling. Two things are clickable and
+   they do different jobs, so they are styled differently and labelled as such:
+
+   - the customer's name opens WhatsApp with their order already written out,
+     because "tell them their reference" is the first thing that happens next;
+   - the phone number expands the row underneath, for the address, the priced
+     line items and anything else too wide for a column.
+
+   Both are real links and buttons, so they work by keyboard and announce
+   themselves; neither is a click handler bolted onto a <td>. */
 function renderOrders(orders) {
   if (orders.length === 0) {
     ordersHost.innerHTML = '<p class="admin-empty">No orders yet.</p>';
@@ -59,24 +71,155 @@ function renderOrders(orders) {
     `${currency.format(value)} in total` +
     (flagged ? ` · ${flagged} flagged for review` : '');
 
-  ordersHost.innerHTML = orders
-    .map(
-      (order) => `<article class="admin-order${order.flagged ? ' admin-order--flagged' : ''}">
-        <header>
-          <h3>${order.reference}</h3>
-          <span class="admin-order__total">${currency.format(order.total)}</span>
-        </header>
-        <p class="admin-order__when">Placed ${escapeHtml(formatWhen(order.created_at))}</p>
-        <p class="admin-order__name">${escapeHtml(order.full_name)}</p>
-        <p class="admin-order__contact">WhatsApp ${escapeHtml(formatMobile(order.mobile))}${order.email ? ` · ${escapeHtml(order.email)}` : ''}</p>
-        <p class="admin-order__address">${escapeHtml(order.address)}, ${escapeHtml(order.city)}, ${escapeHtml(order.state)} ${escapeHtml(order.pincode)}</p>
-        <p class="admin-order__items">${escapeHtml(order.item_summary)}</p>
-        <p class="admin-order__meta">
-          Deliver by ${escapeHtml(order.delivery_date)}${order.has_preorder ? ' · preorder' : ''}${order.flagged ? ' · <strong>check this one</strong>' : ''}
-        </p>
-      </article>`,
-    )
+  const rows = orders
+    .map((order) => {
+      const detailId = `detail-${order.reference}`;
+      return `<tr class="admin-row${order.flagged ? ' admin-row--flagged' : ''}">
+          <td class="admin-cell admin-cell--ref">
+            <span class="admin-ref">${escapeHtml(order.reference)}</span>
+            ${order.has_preorder ? '<span class="admin-tag">preorder</span>' : ''}
+            ${order.flagged ? '<span class="admin-tag admin-tag--warn">check</span>' : ''}
+          </td>
+          <td class="admin-cell admin-cell--when">${escapeHtml(formatWhen(order.created_at))}</td>
+          <td class="admin-cell">
+            <a class="admin-name" href="${escapeHtml(whatsappOrderLink(order))}" target="_blank" rel="noopener"
+               title="Message ${escapeHtml(order.full_name)} on WhatsApp with this order">${escapeHtml(order.full_name)}</a>
+          </td>
+          <td class="admin-cell">
+            <button class="admin-expand" type="button" aria-expanded="false" aria-controls="${detailId}"
+                    data-expand="${escapeHtml(order.reference)}">
+              <span class="admin-expand__number">${escapeHtml(formatMobile(order.mobile))}</span>
+              <span class="admin-expand__chevron" aria-hidden="true"></span>
+            </button>
+          </td>
+          <td class="admin-cell admin-cell--items">${escapeHtml(order.item_summary)}</td>
+          <td class="admin-cell admin-cell--total">${currency.format(order.total)}</td>
+        </tr>
+        <tr class="admin-detail-row" id="${detailId}" data-detail="${escapeHtml(order.reference)}" hidden>
+          <td colspan="6">${detailPanel(order)}</td>
+        </tr>`;
+    })
     .join('');
+
+  ordersHost.innerHTML = `<div class="admin-table-wrap">
+      <table class="admin-table">
+        <caption class="sr-only">Orders received, newest first</caption>
+        <thead>
+          <tr>
+            <th scope="col">Reference</th>
+            <th scope="col">Placed (IST)</th>
+            <th scope="col">Customer <span class="admin-th-hint">click to WhatsApp</span></th>
+            <th scope="col">WhatsApp <span class="admin-th-hint">click to expand</span></th>
+            <th scope="col">Items</th>
+            <th scope="col" class="admin-cell--total">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <p class="admin-legend">
+      Click a <strong>name</strong> to message that customer on WhatsApp with their reference.
+      Click a <strong>number</strong> to open the full details.
+    </p>`;
+}
+
+/* One delegated listener rather than a closure per row: the table is rebuilt
+   wholesale on every load, so listeners on rows would have to be reattached
+   every time. Toggling `hidden` is left to the browser, which also moves focus
+   nowhere, so a keyboard user stays on the button they pressed. */
+function onTableClick(event) {
+  const button = event.target.closest('[data-expand]');
+  if (!button) return;
+  /* Found by walking the row rather than by querying on the reference, which
+     would mean escaping a value into a selector for no benefit: the detail row
+     is always the next sibling of the row the button sits in. */
+  const panel = button.closest('tr')?.nextElementSibling;
+  if (!panel?.matches('[data-detail]')) return;
+  const open = panel.hidden;
+  panel.hidden = !open;
+  button.setAttribute('aria-expanded', String(open));
+}
+
+/* Everything that does not fit in a column: the full address as the customer
+   typed it, the priced line items, their email, and a button that repeats the
+   WhatsApp action from here in case the name above was missed. */
+function detailPanel(order) {
+  const lines = orderLines(order);
+  const items = lines.length
+    ? lines
+        .map(
+          (line) => `<li>
+            <span class="admin-detail__qty">${escapeHtml(line.quantity)} ×</span>
+            <span class="admin-detail__name">${escapeHtml(line.name)} <span class="admin-detail__size">(${escapeHtml(line.size)})</span></span>
+            <span class="admin-detail__price">${currency.format(line.lineTotal)}</span>
+          </li>`,
+        )
+        .join('')
+    : `<li class="admin-detail__fallback">${escapeHtml(order.item_summary)}</li>`;
+
+  return `<div class="admin-detail">
+      <dl class="admin-detail__grid">
+        <div><dt>Deliver by</dt><dd>${escapeHtml(order.delivery_date)}</dd></div>
+        <div><dt>Total</dt><dd>${currency.format(order.total)}</dd></div>
+        <div><dt>Placed</dt><dd>${escapeHtml(formatWhen(order.created_at))}</dd></div>
+        <div><dt>Email</dt><dd>${order.email ? escapeHtml(order.email) : '<span class="admin-detail__none">not given</span>'}</dd></div>
+      </dl>
+      <h4>Items</h4>
+      <ul class="admin-detail__items">${items}</ul>
+      <h4>Delivery address</h4>
+      <p class="admin-detail__address">${escapeHtml(order.address)}<br />${escapeHtml(order.city)}, ${escapeHtml(order.state)} ${escapeHtml(order.pincode)}</p>
+      <div class="admin-detail__actions">
+        <a class="checkout-button admin-detail__wa" href="${escapeHtml(whatsappOrderLink(order))}" target="_blank" rel="noopener">Message on WhatsApp <span aria-hidden="true">↗</span></a>
+        <a class="admin-detail__call" href="tel:+91${escapeHtml(String(order.mobile).replace(/\D/g, ''))}">Call ${escapeHtml(formatMobile(order.mobile))}</a>
+      </div>
+    </div>`;
+}
+
+/* The priced lines are stored as JSON so the sheet stays readable without
+   unpicking them. A row written by an older build, or one that failed to
+   parse, falls back to the flat summary rather than rendering nothing. */
+function orderLines(order) {
+  if (typeof order.items !== 'string' || order.items === '') return [];
+  try {
+    const parsed = JSON.parse(order.items);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/* wa.me wants the number with no +, spaces or dashes, and the message as a
+   query parameter. The text is written for the customer to read: their
+   reference first, because that is what they would quote if they called. */
+function whatsappOrderLink(order) {
+  const number = `91${String(order.mobile).replace(/\D/g, '')}`;
+  const lines = orderLines(order);
+  const items = lines.length
+    ? lines
+        .map(
+          (line) =>
+            `${line.quantity} × ${line.name} (${line.size}) — ${currency.format(line.lineTotal)}`,
+        )
+        .join('\n')
+    : order.item_summary;
+
+  const text = [
+    `Hello ${order.full_name},`,
+    '',
+    'Thank you for your order with Uppalapati Farms.',
+    '',
+    `Reference: ${order.reference}`,
+    `Placed: ${formatWhen(order.created_at)}`,
+    `Deliver by: ${order.delivery_date}`,
+    '',
+    items,
+    '',
+    `Total: ${currency.format(order.total)}`,
+    '',
+    'Nothing has been charged yet. We will confirm your delivery slot and payment with you shortly.',
+  ].join('\n');
+
+  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }
 
 /* The number as the farm reads it back out, which is also what wa.me wants
@@ -168,6 +311,10 @@ document.querySelector('[data-admin-signout]').addEventListener('click', async (
   await api('/api/session', { method: 'DELETE' });
   showLogin();
 });
+
+/* Attached once here rather than inside renderOrders, which rebuilds the whole
+   table on every load and would otherwise stack a listener per refresh. */
+ordersHost.addEventListener('click', onTableClick);
 
 /* ---------- Export ----------
 

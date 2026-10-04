@@ -1815,70 +1815,321 @@ body.is-ready .loading-screen {
   font-size: 0.9rem;
 }
 
-.admin-order {
-  padding: 22px 0;
-  border-top: 1px solid var(--line);
+/* ---------- The order table ----------
+
+   Reads down a column rather than down a stack of cards, which is what the
+   owner actually does: find the reference, read the number, act. The wrapper
+   scrolls sideways on a narrow screen so the columns never squash into
+   unreadable slivers. */
+.admin-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  -webkit-overflow-scrolling: touch;
 }
 
-.admin-order header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+.admin-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 0.8rem;
 }
 
-.admin-order h3 {
+.admin-table th,
+.admin-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-table thead th {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The header carries the two instructions in the table itself, so the owner
+   does not have to find the legend below to know what is clickable. */
+.admin-th-hint {
+  display: block;
+  color: var(--gold-light);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  opacity: 0.75;
+}
+
+.admin-cell--ref {
+  white-space: nowrap;
+}
+
+.admin-ref {
+  display: block;
   color: var(--gold-light);
   font-family: var(--mono);
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
 }
 
-.admin-order__total {
-  color: var(--cream);
-  font-family: var(--mono);
-  font-size: 0.95rem;
-}
-
-.admin-order p {
-  margin-top: 8px;
+/* Preorder and honeypot markers. A honeypot row is still a real order and must
+   never be hidden, so it is flagged in place rather than filtered out. */
+.admin-tag {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
   color: var(--muted);
-  font-size: 0.85rem;
-  line-height: 1.6;
-}
-
-.admin-order__name {
-  color: var(--cream) !important;
-}
-
-/* The two facts the owner scans for first: when it came in, and how to reach
-   the customer. Pinned to Asia/Kolkata so the page and the sheet's
-   "Placed (IST)" column can never disagree about the same order. */
-.admin-order__when,
-.admin-order__contact {
   font-family: var(--mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.02em;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.admin-order__contact {
-  color: var(--gold-light) !important;
+.admin-tag--warn {
+  border-color: #d78376;
+  color: #d78376;
 }
 
-.admin-order__items,
-.admin-order__meta {
+.admin-cell--when,
+.admin-cell--items {
   color: var(--muted);
   font-family: var(--mono);
   font-size: 0.72rem;
-  letter-spacing: 0.02em;
+  line-height: 1.55;
 }
 
-/* Honeypot hits are still real orders and must not be hidden — they are marked
-   so the owner can tell them apart at a glance. */
-.admin-order--flagged {
-  padding-left: 16px;
-  border-left: 2px solid #d78376;
+.admin-cell--items {
+  max-width: 220px;
+}
+
+.admin-cell--total {
+  color: var(--cream);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.admin-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-row--flagged {
+  box-shadow: inset 2px 0 0 #d78376;
+}
+
+/* ---------- The two clickable things ---------- */
+
+.admin-name {
+  color: var(--cream);
+  font-weight: 500;
+  text-decoration-color: rgba(201, 168, 106, 0.5);
+  text-underline-offset: 3px;
+}
+
+.admin-name:hover,
+.admin-name:focus-visible {
+  color: var(--gold-light);
+  text-decoration-color: currentColor;
+}
+
+.admin-expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--gold-light);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.admin-expand:hover .admin-expand__number,
+.admin-expand:focus-visible .admin-expand__number {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Drawn rather than typed so it rotates with the row instead of swapping
+   characters, which keeps it from shifting the number sideways. */
+.admin-expand__chevron {
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(-45deg) translate(-1px, -1px);
+  transition: transform 160ms ease;
+}
+
+.admin-expand[aria-expanded='true'] .admin-expand__chevron {
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.admin-legend {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.6;
+}
+
+.admin-legend strong {
+  color: var(--gold-light);
+  font-weight: 500;
+}
+
+/* ---------- Expanded row ---------- */
+
+.admin-detail-row[hidden] {
+  display: none;
+}
+
+.admin-detail-row > td {
+  padding: 0;
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.admin-detail {
+  padding: 22px 16px 24px;
+  border-left: 2px solid var(--gold);
+}
+
+.admin-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px 24px;
+  margin: 0 0 20px;
+}
+
+.admin-detail__grid dt {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-detail__grid dd {
+  margin: 4px 0 0;
+  color: var(--cream);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.admin-detail__none {
+  color: var(--muted);
+}
+
+.admin-detail h4 {
+  margin: 18px 0 8px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-detail__items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-detail__items li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--cream);
+  font-size: 0.82rem;
+}
+
+.admin-detail__qty {
+  min-width: 34px;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.admin-detail__name {
+  flex: 1;
+}
+
+.admin-detail__size,
+.admin-detail__fallback {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.admin-detail__price {
+  color: var(--cream);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.admin-detail__address {
+  margin: 0;
+  color: var(--cream);
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.admin-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.admin-detail__wa {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 20px;
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.admin-detail__call {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.admin-detail__call:hover {
+  color: var(--cream);
+}
+
+/* Below this width the address, email and per-line prices are all one tap away
+   in the expanded row, so the columns that merely repeat them are dropped
+   rather than left as unreadable slivers. */
+@media (max-width: 720px) {
+  .admin-table {
+    min-width: 0;
+  }
+
+  .admin-cell--items,
+  .admin-table thead th:nth-child(5) {
+    display: none;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 10px 9px;
+  }
+
+  .admin-detail {
+    padding: 18px 12px 20px;
+  }
 }
 
 /* ---------- No-js / reduced-motion fallbacks ---------- */
