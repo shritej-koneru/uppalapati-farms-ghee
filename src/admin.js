@@ -1,5 +1,4 @@
 import { currency } from './catalogue.js';
-import { sealWorkbook, unsealWorkbook } from './seal.js';
 
 const loginPanel = document.querySelector('[data-admin-login]');
 const app = document.querySelector('[data-admin-app]');
@@ -8,7 +7,6 @@ const loginStatus = document.querySelector('[data-login-status]');
 const ordersHost = document.querySelector('[data-admin-orders]');
 const summary = document.querySelector('[data-admin-summary]');
 const exportStatus = document.querySelector('[data-export-status]');
-const openStatus = document.querySelector('[data-open-status]');
 
 /* Every call is same-origin and credentials are sent by default, so the session
    cookie rides along without being read by JavaScript — it is HttpOnly. There is
@@ -68,16 +66,26 @@ function renderOrders(orders) {
           <h3>${order.reference}</h3>
           <span class="admin-order__total">${currency.format(order.total)}</span>
         </header>
-        <p class="admin-order__name">${escapeHtml(order.full_name)} · ${escapeHtml(order.mobile)}${order.email ? ` · ${escapeHtml(order.email)}` : ''}</p>
+        <p class="admin-order__when">Placed ${escapeHtml(formatWhen(order.created_at))}</p>
+        <p class="admin-order__name">${escapeHtml(order.full_name)}</p>
+        <p class="admin-order__contact">WhatsApp ${escapeHtml(formatMobile(order.mobile))}${order.email ? ` · ${escapeHtml(order.email)}` : ''}</p>
         <p class="admin-order__address">${escapeHtml(order.address)}, ${escapeHtml(order.city)}, ${escapeHtml(order.state)} ${escapeHtml(order.pincode)}</p>
         <p class="admin-order__items">${escapeHtml(order.item_summary)}</p>
         <p class="admin-order__meta">
-          Placed ${escapeHtml(formatWhen(order.created_at))} · deliver by ${escapeHtml(order.delivery_date)}
-          ${order.has_preorder ? ' · preorder' : ''}${order.flagged ? ' · <strong>check this one</strong>' : ''}
+          Deliver by ${escapeHtml(order.delivery_date)}${order.has_preorder ? ' · preorder' : ''}${order.flagged ? ' · <strong>check this one</strong>' : ''}
         </p>
       </article>`,
     )
     .join('');
+}
+
+/* The number as the farm reads it back out, which is also what wa.me wants
+   once the country code is put in front. Anything that is not the ten digits
+   validation guarantees is passed through rather than mangled. */
+function formatMobile(value) {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  if (digits.length !== 10) return String(value ?? '');
+  return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
 }
 
 /* Order data is customer-supplied text rendered into the page. `textContent`
@@ -93,13 +101,14 @@ function escapeHtml(value) {
 function formatWhen(iso) {
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) return iso;
-  return parsed.toLocaleString('en-IN', {
+  return `${parsed.toLocaleString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  });
+    timeZone: 'Asia/Kolkata',
+  })} IST`;
 }
 
 async function loadOrders() {
@@ -159,79 +168,36 @@ document.querySelector('[data-admin-signout]').addEventListener('click', async (
 
 /* ---------- Export ----------
 
-   The workbook is fetched as plain bytes, then encrypted here and only then
-   written to disk. The plaintext exists in this tab's memory for the length of
-   one click and never reaches the filesystem. */
+   The sheet is built by the server from the same order book this page is
+   showing, and the request only succeeds while the owner session is valid, so
+   it is written straight to disk as an ordinary .xlsx. Nothing is encrypted
+   here: the passphrase on this page is the only thing standing between a
+   stranger and these orders, and it never reaches the export. */
 document.querySelector('[data-export-button]').addEventListener('click', async () => {
   const button = document.querySelector('[data-export-button]');
-  const passphrase = document.querySelector('#export-passphrase').value;
-  const confirm = document.querySelector('#export-confirm').value;
   exportStatus.textContent = '';
-
-  if (passphrase.length < 8) {
-    exportStatus.textContent = 'Use a passphrase of at least 8 characters.';
-    return;
-  }
-  if (passphrase !== confirm) {
-    exportStatus.textContent = 'The two passphrases do not match.';
-    return;
-  }
-
   button.disabled = true;
-  exportStatus.textContent = 'Building and encrypting the sheet…';
+  exportStatus.textContent = 'Building the sheet…';
   try {
-    const response = await fetch('/api/orders?format=xlsx', { credentials: 'same-origin' });
+    const response = await fetch('/api/orders?format=xlsx', {
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
     if (response.status === 401) {
       showLogin();
       return;
     }
-    if (!response.ok) throw new Error('export failed');
+    if (!response.ok) throw new Error('the shop did not return a sheet');
 
     const workbook = new Uint8Array(await response.arrayBuffer());
-    const sealed = await sealWorkbook(workbook, passphrase, { reference: `orders-${todayStamp()}` });
-
-    saveBlob([sealed], `uppalapati-orders-${todayStamp()}.xlsx.enc`, 'application/octet-stream');
-    document.querySelector('#export-passphrase').value = '';
-    document.querySelector('#export-confirm').value = '';
-    exportStatus.textContent =
-      'Saved. Keep the passphrase somewhere safe — without it the sheet cannot be opened.';
-  } catch (error) {
-    exportStatus.textContent = `Could not create the sheet: ${error.message}`;
-  } finally {
-    button.disabled = false;
-  }
-});
-
-/* ---------- Reopening a saved sheet ---------- */
-document.querySelector('[data-open-button]').addEventListener('click', async () => {
-  const button = document.querySelector('[data-open-button]');
-  const fileInput = document.querySelector('#open-file');
-  const passphrase = document.querySelector('#open-passphrase').value;
-  openStatus.textContent = '';
-
-  const file = fileInput.files?.[0];
-  if (!file) {
-    openStatus.textContent = 'Choose a sealed sheet first.';
-    return;
-  }
-  if (!passphrase) {
-    openStatus.textContent = 'Enter the passphrase for the sheet.';
-    return;
-  }
-
-  button.disabled = true;
-  openStatus.textContent = 'Decrypting…';
-  try {
-    const workbook = await unsealWorkbook(await file.text(), passphrase);
     saveBlob(
       workbook,
       `uppalapati-orders-${todayStamp()}.xlsx`,
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    openStatus.textContent =
-      'Decrypted. This copy is not password-protected — delete it once you have what you need from it.';
+    exportStatus.textContent = 'Saved. Open it in Excel, Google Sheets or Numbers.';
   } catch (error) {
-    openStatus.textContent = error.message;
+    exportStatus.textContent = `Could not create the sheet: ${error.message}`;
   } finally {
     button.disabled = false;
   }

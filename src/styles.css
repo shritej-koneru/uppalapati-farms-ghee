@@ -1803,12 +1803,6 @@ body.is-ready .loading-screen {
   margin: 0;
 }
 
-.admin-panel code {
-  color: var(--cream);
-  font-family: var(--mono);
-  font-size: 0.85em;
-}
-
 .admin-orders h2 {
   margin-bottom: 24px;
   color: var(--cream);
@@ -1856,6 +1850,20 @@ body.is-ready .loading-screen {
 
 .admin-order__name {
   color: var(--cream) !important;
+}
+
+/* The two facts the owner scans for first: when it came in, and how to reach
+   the customer. Pinned to Asia/Kolkata so the page and the sheet's
+   "Placed (IST)" column can never disagree about the same order. */
+.admin-order__when,
+.admin-order__contact {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.admin-order__contact {
+  color: var(--gold-light) !important;
 }
 
 .admin-order__items,

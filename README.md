@@ -26,8 +26,7 @@ src/
                     server cannot drift apart. catalogue.js layers presentation on
                     top of it, and cannot be imported by the Worker because it
                     touches window/localStorage.
-  admin.js          Owner order book: sign-in, order list, export, decrypt.
-  seal.js           Password-protects an export in the browser (PBKDF2 + AES-GCM).
+  admin.js          Owner order book: sign-in, order list, Excel download.
   bottles.js        Bottle/jar sizing data for the product render.
   product.js        Product detail page gallery.
   contact.js        Contact form.
@@ -113,26 +112,20 @@ A filled honeypot field does **not** drop the order — it records it with
 inputs, and silently discarding what a customer believed they had ordered is far
 worse than one junk row the owner can sort out.
 
-### Password-protecting the export
+### The Excel export
 
-The downloaded sheet contains names, phone numbers and addresses, and it will end
-up in a Downloads folder or attached to an email. So it is encrypted in the
-**browser** before it touches the disk:
+`/api/orders?format=xlsx` builds a fresh single-sheet workbook on request and
+returns it as `uppalapati-orders-<date>.xlsx`. Columns: reference, the moment the
+order was placed (both UTC and IST, since the farm reads its own clock), the
+customer's name, mobile, a WhatsApp-ready `91…` number, email, full address,
+delivery date, items, total, and the preorder/flagged housekeeping marks. Totals
+are written as numbers so Excel can add up a column.
 
-```
-passphrase --PBKDF2-SHA-256 (600k)--> wrapping key
-random 256-bit data key --AES-GCM(wrapping key)--> wrapped key
-workbook bytes --AES-GCM(data key)--> ciphertext
-```
-
-Only the wrapped key is stored, so the file is safe even if the passphrase is
-weak. The passphrase never reaches the server and there is no copy to recover.
-
-**This is not an `.xlsx` that Excel prompts for.** That requires writing an
-encrypted OLE2 compound file, which needs libraries a Worker cannot run and
-cannot be validated without Excel to hand — an unverifiable security control is
-worse than an honest one. The artefact is `uppalapati-orders-<date>.xlsx.enc`, and
-the decrypt panel on `/admin` turns it back into a normal workbook.
+The file is **not** encrypted. The owner passphrase guards the `/admin` page and
+every read of the order book, and the export is only reachable behind that
+session, so a sheet never travels by link and nobody without the passphrase can
+start a download. Once it is on disk it is an ordinary spreadsheet — keep it
+accordingly.
 
 ### Owner secrets
 

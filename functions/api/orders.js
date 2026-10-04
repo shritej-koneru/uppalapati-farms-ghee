@@ -72,9 +72,11 @@ export async function onRequestGet({ request, env }) {
    marks rows a bot probably submitted. */
 const SHEET_COLUMNS = [
   'Reference',
+  'Placed (IST)',
   'Placed (UTC)',
   'Customer',
   'Mobile',
+  'WhatsApp',
   'Email',
   'Address',
   'City',
@@ -91,9 +93,11 @@ const SHEET_COLUMNS = [
 function toSheetRow(order) {
   return [
     order.reference,
+    toIst(order.created_at),
     order.created_at,
     order.full_name,
     order.mobile,
+    `91${order.mobile}`,
     order.email || '',
     order.address,
     order.city,
@@ -106,6 +110,18 @@ function toSheetRow(order) {
     order.notified ? 'yes' : '',
     order.flagged ? 'review' : '',
   ];
+}
+
+/* Written out by shifting the clock rather than asking for a locale: a Worker
+   has no time zone of its own, and "the time the customer pressed the button"
+   is the thing the owner needs. UTC is kept alongside it so there is no doubt
+   which is which if a row is ever compared against a server log. */
+const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+
+function toIst(iso) {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return new Date(parsed.getTime() + IST_OFFSET_MS).toISOString().slice(0, 19).replace('T', ' ');
 }
 
 /* Totals stay numeric so Excel can add up a column; the rupee symbol and the

@@ -45,37 +45,14 @@
         </section>
 
         <section class="admin-panel" aria-labelledby="export-title">
-          <h2 id="export-title">Export to Excel</h2>
+          <h2 id="export-title">Download the sheet</h2>
           <p>
-            The sheet is encrypted in your browser before it is saved, using a passphrase you
-            choose here. The server never sees it and cannot recover it, so keep it somewhere safe —
-            without it the file cannot be opened by anyone, including us.
+            Saves every order as an ordinary Excel sheet, with the date and time it was placed, the
+            customer's WhatsApp number, their address and what they asked for. It carries personal
+            details, so keep the file to yourself.
           </p>
-          <div class="checkout-form">
-            <label class="checkout-form__wide" for="export-passphrase">Sheet passphrase
-              <input id="export-passphrase" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters" />
-            </label>
-            <label class="checkout-form__wide" for="export-confirm">Confirm passphrase
-              <input id="export-confirm" type="password" autocomplete="new-password" minlength="8" />
-            </label>
-            <p class="checkout-form__note" data-export-status aria-live="polite"></p>
-            <button class="checkout-button checkout-form__submit" type="button" data-export-button>Download encrypted sheet</button>
-          </div>
-        </section>
-
-        <section class="admin-panel" aria-labelledby="open-title">
-          <h2 id="open-title">Open a saved sheet</h2>
-          <p>Choose a <code>.xlsx.enc</code> file you downloaded earlier and enter its passphrase to get the workbook back.</p>
-          <div class="checkout-form">
-            <label class="checkout-form__wide" for="open-file">Sealed sheet
-              <input id="open-file" type="file" accept=".enc,application/json" />
-            </label>
-            <label class="checkout-form__wide" for="open-passphrase">Sheet passphrase
-              <input id="open-passphrase" type="password" autocomplete="off" />
-            </label>
-            <p class="checkout-form__note" data-open-status aria-live="polite"></p>
-            <button class="checkout-button checkout-form__submit" type="button" data-open-button>Decrypt and download</button>
-          </div>
+          <p class="checkout-form__note" data-export-status aria-live="polite"></p>
+          <button class="checkout-button checkout-form__submit" type="button" data-export-button>Download Excel sheet</button>
         </section>
 
         <section class="admin-orders" aria-labelledby="orders-title">
