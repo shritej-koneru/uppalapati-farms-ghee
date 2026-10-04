@@ -2130,6 +2130,18 @@ body.is-ready .loading-screen {
   .admin-detail {
     padding: 18px 12px 20px;
   }
+
+  /* The table is still wider than the screen, so the wrapper scrolls sideways.
+     The expanded panel is pinned to the left edge and given roughly the
+     screen's width, so its text wraps to what is actually on screen instead of
+     stretching to the full table width and needing a second scroll to read. The
+     cell behind it already carries the same background, so the area to the
+     right of the panel reads as one continuous block. */
+  .admin-detail {
+    position: sticky;
+    left: 0;
+    width: calc(100vw - 2rem);
+  }
 }
 
 /* ---------- No-js / reduced-motion fallbacks ---------- */
