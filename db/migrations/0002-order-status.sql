@@ -1,0 +1,28 @@
+-- 0002 — order status.
+--
+-- Adds the column the owner moves each order through from the order table.
+--
+-- Run once against the live database:
+--   npx wrangler d1 execute ghee-orders --remote --file=db/migrations/0002-order-status.sql
+--
+-- Why a migration file rather than an edit to schema.sql: `CREATE TABLE IF NOT
+-- EXISTS` is a no-op on a table that already exists, so adding the column to
+-- the CREATE TABLE only helps a fresh install. This statement is what brings an
+-- existing database up to the same shape.
+--
+-- It is deliberately NOT idempotent, because SQLite has no way to add a column
+-- only if it is missing. That is fine because it has a fixed job to do and the
+-- exact wording below tells you at once if it has already been applied:
+--
+--   duplicate column name: status   <- already applied, stop
+--   nothing                  <- applied this time
+--
+-- Existing rows are set to 'pending', which is the truth: an order in the book
+-- that nobody has moved on has not been confirmed yet. The column is NOT NULL so
+-- a row can never exist without a status, which is what lets the sheet and the
+-- page count on it without guarding every read.
+--
+-- `WHERE status IS NULL` is not needed and would be wrong: SQLite fills existing
+-- rows with the declared DEFAULT when a NOT NULL column is added.
+
+ALTER TABLE orders ADD COLUMN status TEXT NOT NULL DEFAULT 'pending';

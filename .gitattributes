@@ -1,0 +1,13 @@
+# Line endings are stored as LF whatever platform a file was edited on.
+#
+# Not a style preference. This repo contains bash — inside the `run:` blocks of
+# the workflows in .github/workflows/ and in scripts/test-reset-workflow.sh — and
+# a carriage return in front of a line ending is a syntax error to bash, not a
+# line ending. A workflow committed from Windows with CRLF fails at run time with
+# something like `syntax error near unexpected token`, which points at the shell
+# rather than at the line ending that caused it.
+#
+# `text=auto` leaves genuinely binary files — the images and video under
+# public/media — alone; git works that out from the file's own contents rather
+# than from its name.
+* text=auto eol=lf

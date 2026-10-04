@@ -1,0 +1,192 @@
+name: Migrate the database
+
+# Applies a migration from db/migrations/ to the production D1 database.
+#
+# Why this exists for the same reason the reset workflow does: the wrangler login
+# on this machine belongs to a different Cloudflare account, so
+# `wrangler d1 execute --remote` cannot reach production from here. CI is the only
+# context holding a token that can.
+#
+# Which file runs is a free-text input, but the file itself is committed and
+# reviewed code that lives next to the schema it changes. It is not a SQL input:
+# this workflow holds the same API token as the deploy, so a box taking statements
+# would let anyone able to dispatch a workflow run arbitrary SQL against the live
+# database.
+#
+# Run a migration BEFORE deploying the code that needs it. `0002-order-status.sql`
+# adds the `status` column, and the deploy that reads it would fail on a database
+# without the column.
+
+on:
+  # Manual only. Never triggered by a push or a pull request.
+  workflow_dispatch:
+    inputs:
+      migration:
+        description: 'Migration file to apply, e.g. 0002-order-status.sql'
+        required: true
+        type: string
+      confirm:
+        description: 'Type "apply this migration" to confirm.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# One migration at a time. A second one starting while this runs would be two
+# wrangler processes writing one schema, which SQLite has no good answer for.
+concurrency:
+  group: database-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply the migration to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v5
+
+      # Two refusals, both about the input rather than about the database: a
+      # confirmation that does not match exactly, and a name that is not a
+      # migration in this repository.
+      #
+      # Nothing here interpolates `${{ inputs.* }}` into the script. A workflow
+      # input is attacker-controlled by anyone who can dispatch, and text pasted
+      # straight into a shell is executed by it, so both inputs arrive through
+      # `env:` and are only ever read as quoted variables. Quoted expansion is not
+      # re-parsed for syntax, which is what makes this step safe rather than
+      # merely cautious.
+      #
+      # The single-line check is separate on purpose. `grep -Eq` succeeds if *any*
+      # line matches, so a name of "0002-order-status.sql\nrm -rf /" would satisfy
+      # the pattern below on its first line and carry the rest of itself through.
+      - name: Refuse unless the input names a migration and is confirmed
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+          MIGRATION: ${{ inputs.migration }}
+        run: |
+          if [ "$CONFIRM" != "apply this migration" ]; then
+            echo "::error::Confirmation did not match. Nothing was changed."
+            exit 1
+          fi
+
+          SINGLE_LINE=$(printf '%s' "$MIGRATION" | tr -d '\r\n')
+          if [ "$SINGLE_LINE" != "$MIGRATION" ]; then
+            echo "::error::The migration name must be a single line."
+            exit 1
+          fi
+
+          # Anchored, with no path separator and no parent reference, so this can
+          # only ever resolve to one file inside db/migrations/.
+          if ! printf '%s' "$MIGRATION" | grep -Eq '^[0-9]{4}-[A-Za-z0-9._-]+\.sql$'; then
+            echo "::error::\"$MIGRATION\" is not a migration file name."
+            exit 1
+          fi
+
+          if [ ! -f "db/migrations/$MIGRATION" ]; then
+            echo "::error::db/migrations/$MIGRATION does not exist in this repository."
+            echo "Available:"
+            ls -1 db/migrations/
+            exit 1
+          fi
+
+          echo "Applying db/migrations/$MIGRATION"
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install
+        run: npm ci
+
+      # SQLite cannot add a column only if it is missing, so every ALTER here
+      # errors the second time it runs. Rather than tolerating that error and
+      # hoping it was the duplicate-column one, the state is read first: an
+      # already-migrated database reports so and the job exits successfully, which
+      # is what makes re-dispatching this workflow safe rather than something to
+      # be afraid of.
+      #
+      # Only 0002 is known to be re-runnable this way. A later migration needs its
+      # own pre-check written for it here before it is listed as safe, and until
+      # then it takes the direct route and fails loudly if run twice.
+      - name: Check whether the migration has already been applied
+        id: already
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+          MIGRATION: ${{ inputs.migration }}
+        run: |
+          if [ "$MIGRATION" = "0002-order-status.sql" ]; then
+            npx wrangler d1 execute ghee-orders --remote --json \
+              --command "SELECT COUNT(*) AS n FROM pragma_table_info('orders') WHERE name = 'status'" \
+              | tee probe.json
+            if grep -q '"n": 1' probe.json; then
+              echo "already_applied=true" >> "$GITHUB_OUTPUT"
+              echo "The status column already exists. Nothing to do."
+            else
+              echo "already_applied=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "already_applied=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply the migration
+        if: steps.already.outputs.already_applied != 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+          MIGRATION: ${{ inputs.migration }}
+        run: npx wrangler d1 execute ghee-orders --remote --file="db/migrations/$MIGRATION"
+
+      # After, not instead. A migration that reports success without landing is
+      # worse than one that failed loudly, so the shape of the database is read
+      # back out of the database afterwards.
+      #
+      # grep rather than a JSON parser, for the reason the reset workflow does the
+      # same: no match is a non-zero exit and the job fails, so a change in
+      # wrangler's output shape cannot quietly turn these into checks that always
+      # pass.
+      - name: Confirm the status column is in place and populated
+        if: steps.already.outputs.already_applied != 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npx wrangler d1 execute ghee-orders --remote --json \
+            --command "SELECT name, \"notnull\", dflt_value FROM pragma_table_info('orders') WHERE name = 'status'" \
+            | tee column.json
+          grep -q '"name": "status"' column.json || { echo "::error::No status column."; exit 1; }
+          grep -q '"notnull": 1' column.json || { echo "::error::status is nullable."; exit 1; }
+          grep -q "\"dflt_value\": \"'pending'\"" column.json || { echo "::error::status does not default to pending."; exit 1; }
+
+          # Being NOT NULL is what makes this zero, so it is checked rather than
+          # assumed: an ALTER that had half-applied would leave rows the page and
+          # the sheet would then have to guess about.
+          npx wrangler d1 execute ghee-orders --remote --json \
+            --command "SELECT COUNT(*) AS null_statuses FROM orders WHERE status IS NULL" \
+            | tee nulls.json
+          grep -q '"null_statuses": 0' nulls.json || { echo "::error::Some orders have no status."; exit 1; }
+
+          echo "Migration applied: orders.status exists, is NOT NULL, and defaults to pending."
+
+      - name: Summary
+        env:
+          MIGRATION: ${{ inputs.migration }}
+          ALREADY_APPLIED: ${{ steps.already.outputs.already_applied }}
+        run: |
+          {
+            echo "### $MIGRATION"
+            echo ""
+            if [ "$ALREADY_APPLIED" = "true" ]; then
+              echo "Already applied. The database was not changed."
+            else
+              echo "Applied to the production order book."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
