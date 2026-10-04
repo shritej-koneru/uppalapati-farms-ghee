@@ -13,22 +13,25 @@ step_one() {
 
 step_two() {
   npx wrangler d1 execute ghee-orders --local --command \
-    "DELETE FROM orders; UPDATE counters SET value = 0 WHERE name = 'order';" 2>&1 | tail -3
+    "DELETE FROM orders; DELETE FROM counters WHERE name LIKE 'order%';" 2>&1 | tail -3
 }
 
 step_three() {
   npx wrangler d1 execute ghee-orders --local --json --command \
-    "SELECT (SELECT COUNT(*) FROM orders) AS orders, (SELECT value FROM counters WHERE name = 'order') AS counter" \
+    "SELECT (SELECT COUNT(*) FROM orders) AS orders, (SELECT COUNT(*) FROM counters WHERE name LIKE 'order%') AS counters" \
     | tee result.json
   grep -q '"orders": 0' result.json || { echo "::error::The orders table is not empty."; return 1; }
-  grep -q '"counter": 0' result.json || { echo "::error::The order counter was not reset."; return 1; }
-  echo "Order book is empty and the counter is back to zero."
+  grep -q '"counters": 0' result.json || { echo "::error::The order counters were not reset."; return 1; }
+  echo "Order book is empty and every day's counter is gone."
 }
 
 seed() {
   npx wrangler d1 execute ghee-orders --local --command \
-    "INSERT INTO orders (id,reference,request_key,created_at,full_name,mobile,email,address,city,state,pincode,delivery_date,items,item_summary,total,has_preorder,notified,flagged) VALUES ('a','UP-2026-0001',NULL,'2026-10-04T08:02:09.145Z','Priya','9876543210',NULL,'12 Test St','Guntur','AP','522001','2026-10-12','[]','1 x ghee',4497,0,0,0)" >/dev/null 2>&1
-  npx wrangler d1 execute ghee-orders --local --command "UPDATE counters SET value = 3 WHERE name = 'order'" >/dev/null 2>&1
+    "INSERT INTO orders (id,reference,request_key,created_at,full_name,mobile,email,address,city,state,pincode,delivery_date,items,item_summary,total,has_preorder,notified,flagged,status) VALUES ('a','041026-001',NULL,'2026-10-04T08:02:09.145Z','Priya','9876543210',NULL,'12 Test St','Guntur','AP','522001','2026-10-12','[]','1 x ghee',4497,0,0,0,'pending')" >/dev/null 2>&1
+  # Two days' worth, because the sequence is per day and a reset that only
+  # zeroes one row would still leave the other behind.
+  npx wrangler d1 execute ghee-orders --local --command \
+    "INSERT INTO counters (name,value) VALUES ('order-041026',3),('order-051026',7) ON CONFLICT (name) DO NOTHING" >/dev/null 2>&1
 }
 
 echo "########## rebuild local database ##########"

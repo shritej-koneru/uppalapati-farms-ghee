@@ -22,8 +22,9 @@ import {
   findByRequestKey,
   listOrders,
   setOrderStatus,
+  IST_OFFSET_MS,
 } from '../_lib/orders.js';
-import { statusLabel } from '../../src/order-status.js';
+import { statusLabel, STATUS_FILLS } from '../../src/order-status.js';
 import { buildWorkbook } from '../_lib/xlsx.js';
 
 export async function onRequestPost({ request, env }) {
@@ -83,7 +84,7 @@ export async function onRequestGet({ request, env }) {
   const url = new URL(request.url);
 
   if (url.searchParams.get('format') === 'xlsx') {
-    const workbook = buildWorkbook(SHEET_COLUMNS, orders.map(toSheetRow));
+    const workbook = buildWorkbook(SHEET_COLUMNS, orders.map(toSheetRow), SHEET_TINTS);
     return new Response(workbook, {
       headers: {
         'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -131,6 +132,16 @@ export const SHEET_COLUMNS = [
   'Check',
 ];
 
+/* How the sheet is coloured, exported alongside `SHEET_COLUMNS` and `toSheetRow`
+   so scripts/check-xlsx.mjs asserts the export as it is actually configured
+   rather than a copy of the configuration. The column is looked up from the
+   header rather than written as a 0, so inserting a column at the front moves the
+   colour with it instead of leaving it colouring the wrong thing. */
+export const SHEET_TINTS = {
+  tintColumn: SHEET_COLUMNS.indexOf('Status'),
+  tints: STATUS_FILLS,
+};
+
 export function toSheetRow(order) {
   return [
     statusLabel(order.status),
@@ -157,8 +168,9 @@ export function toSheetRow(order) {
 /* Written out by shifting the clock rather than asking for a locale: a Worker
    has no time zone of its own, and "the time the customer pressed the button"
    is the thing the owner needs. UTC is kept alongside it so there is no doubt
-   which is which if a row is ever compared against a server log. */
-const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+   which is which if a row is ever compared against a server log. The offset
+   itself lives in _lib/orders.js, because an order's reference is dated in the
+   same zone and the two must not be able to disagree. */
 
 function toIst(iso) {
   const parsed = new Date(iso);

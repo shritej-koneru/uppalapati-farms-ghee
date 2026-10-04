@@ -13,7 +13,9 @@
 
 CREATE TABLE IF NOT EXISTS orders (
   id            TEXT PRIMARY KEY,
-  -- Human-readable, spoken over the phone: UP-2026-0001. Comes from the
+  -- Human-readable, spoken over the phone: 041026-005, which reads as "the
+  -- fourth of October 2026, fifth order". The date is the farm's local day, not
+  -- the server's, and the sequence counts within that day. Comes from the
   -- counters table below rather than from a row count, so two orders arriving
   -- at once cannot be given the same number.
   reference     TEXT NOT NULL,
@@ -63,14 +65,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_reference ON orders (reference);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_request
   ON orders (request_key) WHERE request_key IS NOT NULL;
 
--- Single-row counters. `UPDATE ... SET value = value + 1 ... RETURNING value` is
--- atomic, which is what keeps order references unique under load.
+-- Counters, keyed by name. The order sequence is one row per day —
+-- `order-041026` — written by the upsert in functions/_lib/orders.js rather than
+-- seeded here, because the set of days is not known until orders arrive. The
+-- upsert is a single statement, so the counter cannot be incremented twice for
+-- one order or missed entirely: that is what keeps references unique under load.
 CREATE TABLE IF NOT EXISTS counters (
   name  TEXT PRIMARY KEY,
   value INTEGER NOT NULL
 );
-
-INSERT INTO counters (name, value) VALUES ('order', 0) ON CONFLICT (name) DO NOTHING;
 
 -- Throttles sign-in attempts. Holds a keyed hash of the visitor's address, never
 -- the address itself, and rows for old windows are deleted as they expire.

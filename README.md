@@ -28,14 +28,17 @@ src/
                     touches window/localStorage.
   admin.js          Owner order book: sign-in, order list, per-order status picker,
                     Excel download.
-  order-status.js    The five order statuses, shared by BOTH the order table and the
-                    order endpoint for the same reason pricing.js is: the dropdown
-                    the owner clicks and the check the server applies have to
-                    agree, or a status gets offered that is then refused.
+  order-status.js    The five order statuses, and the colour each one is filled
+                      with in the exported sheet. Shared by BOTH the order table
+                      and the order endpoint for the same reason pricing.js is: the
+                      dropdown the owner clicks, the check the server applies and
+                      the cell the owner scans all have to agree, or a status gets
+                      offered that is then refused.
   bottles.js        Bottle/jar sizing data for the product render.
   product.js        Product detail page gallery.
   contact.js        Contact form.
-  checkout.js       Checkout page.
+  checkout.js       Checkout page, and the modal receipt shown once an order is
+                    recorded — see [The receipt](#the-receipt).
   jar3d.js          three.js scene for the GLB jar.
   assets/
     logo-source.png Original artwork, 1254x1254. Source only — never deployed.
@@ -44,7 +47,9 @@ functions/          Cloudflare Pages Functions, deployed with the static site.
   api/orders.js     POST places an order (public). GET reads the order book, and
                     ?format=xlsx returns the workbook (signed-in owner only).
   api/session.js    POST sign in, DELETE sign out, GET session state.
-  _lib/orders.js    Order validation and storage.
+  _lib/orders.js    Order validation, storage and the reference counter. Also owns
+                    IST_OFFSET_MS, which both the reference and the sheet's "Placed
+                    (IST)" column read, so the two can never disagree on the day.
   _lib/session.js   Passphrase check, signed cookie, sign-in throttle.
   _lib/xlsx.js      Minimal .xlsx (ZIP + XML) writer. No dependencies.
   _lib/http.js      Response helpers and client address handling.
@@ -90,8 +95,10 @@ npm run build     Production build into dist/
 npm run preview   Serve the built dist/
 npm run lint      ESLint over src/, functions/ and scripts/
 npm run typecheck node --check over every module in src/ and functions/
-npm run check:xlsx Check the order sheet's structure and shape
-npm run check     lint + typecheck + check:xlsx
+npm run check:xlsx Check the order sheet's structure, shape and status fills
+npm run check:reference Check the order reference format and its date handling
+npm run check:order Check what the checkout will and will not accept
+npm run check     lint + typecheck + all three checks
 npm run deploy    build, then publish dist/ to Cloudflare Pages
 ```
 
@@ -106,9 +113,18 @@ network. It asserts the parts Excel requires exist, that the content types and
 relationships agree with what was written, that every style index resolves into a
 table that is actually present, that the declared dimension matches the rows and
 columns there, and that `Total` is numeric. It also holds the real `SHEET_COLUMNS`
-to the same length as `toSheetRow` — see [Order status](#order-status).
+to the same length as `toSheetRow`, and asserts the Status cell of every status
+carries that status's own fill — through the real `SHEET_TINTS` the endpoint
+passes, so a change to the export's configuration fails the check rather than
+quietly producing a white Status column — see [Order status](#order-status).
 
-For the one thing it cannot do, there is a check that uses the real thing:
+`check:reference` and `check:order` cover the two pure functions on the order
+path that have no database behind them: which day and which number a new order
+gets, and which customer input is accepted. Both take the clock as an argument so
+they can be run at any moment — a check that only passes at 10am is a check that
+is not run.
+
+For the one thing they cannot do, there is a check that uses the real thing:
 
 ```
 powershell -File scripts/verify-xlsx.ps1 -Path scripts/tmp-status.xlsx
@@ -117,8 +133,11 @@ powershell -File scripts/verify-xlsx.ps1 -Path scripts/tmp-status.xlsx
 Opens a workbook in Excel with `CorruptLoad = 0` (xlNormalLoad) and prints the
 used range, the header row and the first data row. Excel raises on a damaged file
 under that flag rather than silently repairing it into something usable, so a
-clean open is real evidence rather than a re-saved approximation. It needs Excel
-installed, so it is a local tool and not part of `npm run check`.
+clean open is real evidence rather than a re-saved approximation. It also reads
+back the interior colour of every Status cell and compares it against
+`STATUS_FILLS` read out of `src/order-status.js` at run time — a well-formed sheet
+whose fill index Excel ignores looks perfect to everything that is not Excel. It
+needs Excel installed, so it is a local tool and not part of `npm run check`.
 
 ## Orders
 
@@ -134,7 +153,7 @@ demand when the owner asks for it.
 
 The client sends a cart, never a price. The server recomputes every total from
 `src/pricing.js`, so a tampered or stale price cannot change what is recorded.
-Order references (`UP-2026-0001`) come from an atomic counter, incremented
+Order references (`041026-005`) come from an atomic counter, incremented
 *before* the insert so a reference is never reused, and each checkout attempt
 carries a `request_key` so a double-tap or a retry cannot double-order.
 
@@ -143,14 +162,83 @@ A filled honeypot field does **not** drop the order — it records it with
 inputs, and silently discarding what a customer believed they had ordered is far
 worse than one junk row the owner can sort out.
 
+### The receipt
+
+The moment an order is recorded, `/checkout` opens a modal **receipt** carrying
+three things and nothing else: the order number, the WhatsApp number we will
+message, and the fact that payment is settled on that WhatsApp chat. There is a
+**Print / save as PDF** button and a **Close** button, and the card says outright
+that a screenshot works just as well.
+
+It is a modal because those three things are the ones the customer cannot get back
+once the page is closed, and a banner at the bottom of a scrolled form is exactly
+where that information goes to be missed. It is **light where the shop is dark**,
+which is not decoration: the card is going to be photographed off a phone screen
+and read out over a call, and near-black text on cream survives both a camera and a
+print far better than cream text on near-black.
+
+A native `<dialog>` rather than a div with a class. Everything a modal has to get
+right — trapping focus inside it, making the rest of the page inert, Escape to
+dismiss, stacking above the header — is behaviour the browser already implements
+correctly, and every one of those is something hand-rolled modals get subtly
+wrong. Two consequences are deliberate:
+
+- **Clicking the backdrop does not close it.** Losing the order number to a
+  stray click is precisely what the receipt exists to prevent, and a native dialog
+  does not close on a backdrop click, so there is nothing to add.
+- **Focus lands on the card rather than on the first button**, so the order number
+  is what a screen reader announces, and Tab reaches the buttons next.
+
+**Print / save as PDF** calls `window.print()`. The browser's own print dialog is
+where "Save as PDF" already lives, on every platform, and it lets the customer
+print to paper just as easily — a button that silently produced a download would
+be less capable, not more. The `@media print` block hides everything that is not
+the card and takes it out of the top layer, because a modal is `position: fixed`
+and in print that lands it on page one regardless of where the reader is. The
+buttons and the screenshot hint are hidden: they are instructions for a screen,
+not part of the order.
+
+The cart is emptied and the checkout is re-rendered behind the modal, so closing it
+leaves an empty cart and focus on the link back to the shop — not on a submit
+button that no longer exists.
+
+### The order reference
+
+`041026-005` is **the day the order was placed, in the farm's own timezone,
+followed by the order number within that day**. It reads out as "the fourth of
+October 2026, fifth order", which is the sentence a customer and the owner will
+actually have when one of them rings the other about a jar.
+
+The date is IST because a Worker has no timezone of its own and a server date
+would file an order placed at 00:15 IST under yesterday — putting it at the end of
+yesterday's sequence instead of the start of today's. India has had no daylight
+saving since 1945, so a fixed +5:30 offset is exact rather than an approximation,
+and it is defined once in `functions/_lib/orders.js` because the date an order is
+numbered against and the time printed on the sheet have to come from the same
+clock.
+
+The counter is one row per day — `order-041026` — rather than one counter, so
+`005` means the fifth order *today*, which is the number the owner saw that day.
+The day is part of the reference, so `041026-001` and `051026-001` cannot collide
+and the restart each morning costs nothing. The rows are never removed; the table
+grows by one a day against a database holding the entire order book. The reset
+workflow clears them. `check:reference` pins the day arithmetic, the daily restart
+and the shape of the value itself.
+
+The sequence is written by a single `INSERT … ON CONFLICT DO UPDATE … RETURNING`
+statement rather than an `UPDATE` followed by an `INSERT`. As two statements there
+is a window in which two orders arriving together both fail to find the row and
+both insert — and `name` is the primary key, so the second throws and the customer
+is told their order was not recorded when it very nearly was.
+
 ### Order status
 
 Every order carries one of five statuses — **pending**, **contacted**, **on the
 way**, **completed**, **canceled** — set from a dropdown in the first column of
 the order table. The list lives in `src/order-status.js` and is shared by the
 Worker and the page for the same reason `pricing.js` is: the dropdown the owner
-clicks and the check the server applies have to agree, or a status gets offered
-that is then refused.
+clicks, the check the server applies and the cell the owner scans all have to
+agree, or a status gets offered that is then refused.
 
 An order arrives as `pending`. Nobody has confirmed anything at that point — the
 customer pressed a button and the owner has not replied. The list is ordered as
@@ -186,10 +274,30 @@ The sheet carries the label rather than the stored value, so filtering and
 sorting in Excel read "On the way" instead of `on-the-way`. Totals are written as
 numbers so Excel can add up a column.
 
-`npm run check` guards the two things that would quietly corrupt it: that the
-header row and the data rows stay the same length, and that `Status` is still the
-first column. Nothing rejects a mismatch at runtime — the sheet still opens, it
+Each Status cell is filled with its status's colour. `SHEET_TINTS` says which
+column is the state of the order and what colour each status is; the writer itself
+knows nothing about statuses, so the shop's list stays in one file with everything
+else about status.
+
+Those fills are much paler than the pills on the order table. A spreadsheet is
+read in a column and is often printed, where the saturated web colours would read
+as five loud bands and waste a cartridge. They are tints of the same hues, all
+above 17:1 against the default black text, so the cell is unmistakable and still
+legible in greyscale or for a colour-blind reader — the word in the cell carries
+the meaning either way, the colour only saves the owner scanning for "which of
+these are still to go". A status the table does not recognise is left white rather
+than given a colour that would claim to be a state it is not.
+
+`npm run check` guards the three things that would quietly corrupt it: that the
+header row and the data rows stay the same length, that `Status` is still the
+first column, and that every status reaches its cell with its own fill. The last
+one runs through the real `SHEET_TINTS` the endpoint passes, so a change to the
+export's configuration fails the check rather than quietly producing a white
+Status column. Nothing rejects a mismatch at runtime — the sheet still opens, it
 just slides one order's status under the next customer's name.
+
+`scripts/verify-xlsx.ps1` covers what a ZIP-and-XML reader cannot: it opens the
+file in Excel and reads the fill back out of the cell.
 
 The file is **not** encrypted. The owner passphrase guards the `/admin` page and
 every read of the order book, and the export is only reachable behind that
@@ -320,17 +428,24 @@ production database has to go through CI, which holds a token that can.
 | Workflow | What it does |
 | --- | --- |
 | **Migrate the database** | Applies one file from `db/migrations/` to production |
-| **Reset the order book** | Deletes every order and sets the counter to zero |
+| **Reset the order book** | Deletes every order and every day's counter |
 
-The reset workflow takes no inputs beyond its confirmation. Its two SQL statements
-are written out in the workflow file rather than taken as an input, because the
-workflow holds the deploy's API token and a free-text SQL box would let anyone who
-can dispatch a workflow run arbitrary statements against the live order book. It
-records every order it is about to delete before deleting it, and then fails
-unless both the row count and the counter are zero — checked with `grep` against
-wrangler's JSON rather than by parsing it, so a change in that output shape cannot
-quietly turn the check into a no-op that always passes. `login_attempts` is left
-alone deliberately.
+The reset workflow takes no inputs beyond its confirmation. Its two destructive SQL
+statements are written out in the workflow file rather than taken as an input,
+because the workflow holds the deploy's API token and a free-text SQL box would let
+anyone who can dispatch a workflow run arbitrary statements against the live order
+book. It records every order it is about to delete before deleting it, and then
+fails unless both the row count and the counter count are zero — checked with `grep`
+against wrangler's JSON rather than by parsing it, so a change in that output shape
+cannot quietly turn the check into a no-op that always passes. `login_attempts` is
+left alone deliberately.
+
+It deletes **every** `order%` counter row rather than zeroing one. The sequence is
+per day, so there is now one row per day rather than one row forever, and zeroing
+the row that happens to match today would leave tomorrow's counter where it was and
+hand out 004 as the first order of the morning.
+`scripts/test-reset-workflow.sh` runs all three steps against the local database,
+seeded with two days' counters, so this is tested rather than assumed.
 
 > **Deploying with functions needs more than the CI token has.** The token
 > above can build and publish the site, but setting Worker secrets requires

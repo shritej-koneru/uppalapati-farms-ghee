@@ -1,7 +1,6 @@
 import { products, currency, readCart, writeCart, productImage, cartHasPreorder, cartStorageKey, PREORDER_NOTICE_DAYS } from './catalogue.js';
 import { earliestDeliveryDate, latestDeliveryDate } from './pricing.js';
 
-const checkoutContent = document.querySelector('[data-checkout-content]');
 const checkoutDetails = document.querySelector('[data-checkout-details]');
 const checkoutItems = document.querySelector('[data-checkout-items]');
 const checkoutEmpty = document.querySelector('[data-checkout-empty]');
@@ -154,6 +153,17 @@ checkoutForm.addEventListener('submit', async (event) => {
   }
 });
 
+/* ---------- The receipt ----------
+
+   A native <dialog> rather than a div with a class. Everything a modal has to
+   get right — trapping focus inside it, making the rest of the page inert,
+   Escape to dismiss, stacking above the header — is behaviour the browser
+   already implements correctly, and every one of those is a thing hand-rolled
+   modals get subtly wrong. */
+
+const receiptPrint = document.querySelector('[data-confirmation-print]');
+const receiptClose = document.querySelector('[data-confirmation-close]');
+
 function showConfirmation(mobile, reference) {
   document.querySelector('[data-confirmation-number]').textContent = formatMobile(mobile);
   document.querySelector('[data-confirmation-reference]').textContent = reference || '—';
@@ -162,10 +172,34 @@ function showConfirmation(mobile, reference) {
      the shop after a success would otherwise still be holding the jars they just
      ordered, and could easily place the same order twice. */
   writeCart({});
-  checkoutContent.hidden = true;
-  checkoutConfirmation.hidden = false;
-  checkoutConfirmation.focus();
+  renderCheckout();
+
+  if (typeof checkoutConfirmation.showModal === 'function') {
+    checkoutConfirmation.showModal();
+    /* Focused on the card rather than on the first button: the order number is
+       the thing worth reading out, and `aria-labelledby` announces the heading
+       as focus lands here. Tab still reaches the buttons next. */
+    checkoutConfirmation.focus();
+  } else {
+    /* No <dialog> support at all, which means no browser this shop has customers
+       on. Showing the receipt as an ordinary block still puts the number and the
+       number to message in front of them, which is the part that must not be
+       lost. */
+    checkoutConfirmation.setAttribute('open', '');
+  }
 }
+
+receiptPrint?.addEventListener('click', () => window.print());
+
+receiptClose?.addEventListener('click', () => checkoutConfirmation.close());
+
+/* On close, put the keyboard somewhere sensible. The form the customer was
+   filling in is gone — the cart is empty now — so focus goes to the empty-cart
+   message's link back to the shop rather than back to a submit button that no
+   longer exists, which is where the browser's default would leave it. */
+checkoutConfirmation.addEventListener('close', () => {
+  document.querySelector('.checkout-back')?.focus();
+});
 
 function applyFieldErrors(errors) {
   Object.entries(errors).forEach(([field, message]) => {

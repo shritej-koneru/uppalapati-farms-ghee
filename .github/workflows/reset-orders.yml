@@ -1,7 +1,7 @@
 name: Reset the order book
 
-# Empties the production order book and sets the order counter back to zero, so
-# the next real order is UP-2026-0001.
+# Empties the production order book and deletes every day's order counter, so
+# the next real order is 041026-001 — today's date, first of the day.
 #
 # Why this exists as a workflow rather than a documented command: the local
 # wrangler login on this machine belongs to a different Cloudflare account, so
@@ -68,20 +68,26 @@ jobs:
         run: npx wrangler d1 execute ghee-orders --remote --command \
           "SELECT reference, created_at, full_name, mobile, total FROM orders ORDER BY created_at DESC"
 
-      - name: Delete every order and reset the counter
+      - name: Delete every order and reset the counters
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_SEND_METRICS: 'false'
         run: |
           npx wrangler d1 execute ghee-orders --remote --command \
-            "DELETE FROM orders; UPDATE counters SET value = 0 WHERE name = 'order';"
+            "DELETE FROM orders; DELETE FROM counters WHERE name LIKE 'order%';"
 
-      # Anything other than zero orders and a zero counter means the statements
-      # did not both take, and the run should not read as a success. Checked with
-      # grep against wrangler's JSON rather than by parsing it, so a change in
-      # wrangler's output shape cannot quietly turn this into a no-op that always
-      # passes: no match means a non-zero exit and the job fails.
+      # Anything other than zero orders and zero order counters means the
+      # statements did not both take, and the run should not read as a success.
+      # Checked with grep against wrangler's JSON rather than by parsing it, so a
+      # change in wrangler's output shape cannot quietly turn this into a no-op
+      # that always passes: no match means a non-zero exit and the job fails.
+      #
+      # Every day's counter is deleted rather than one row being set back to zero,
+      # because the sequence is now per day — `order-041026`, `order-051026`, and
+      # so on. Leaving those rows in place would keep tomorrow's first order at
+      # 004 if today had three, which is exactly the thing this workflow exists to
+      # prevent.
       - name: Confirm the order book is empty
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -89,8 +95,8 @@ jobs:
           WRANGLER_SEND_METRICS: 'false'
         run: |
           npx wrangler d1 execute ghee-orders --remote --json --command \
-            "SELECT (SELECT COUNT(*) FROM orders) AS orders, (SELECT value FROM counters WHERE name = 'order') AS counter" \
+            "SELECT (SELECT COUNT(*) FROM orders) AS orders, (SELECT COUNT(*) FROM counters WHERE name LIKE 'order%') AS counters" \
             | tee result.json
           grep -q '"orders": 0' result.json || { echo "::error::The orders table is not empty."; exit 1; }
-          grep -q '"counter": 0' result.json || { echo "::error::The order counter was not reset."; exit 1; }
-          echo "Order book is empty and the counter is back to zero."
+          grep -q '"counters": 0' result.json || { echo "::error::The order counters were not reset."; exit 1; }
+          echo "Order book is empty and every day's counter is gone."

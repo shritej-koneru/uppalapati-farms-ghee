@@ -17,12 +17,28 @@
    the customer pressed a button, and the owner has not yet replied. */
 
 export const ORDER_STATUSES = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'contacted', label: 'Contacted' },
-  { value: 'on-the-way', label: 'On the way' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'canceled', label: 'Canceled' },
+  { value: 'pending', label: 'Pending', fill: 'FFFBEBD2' },
+  { value: 'contacted', label: 'Contacted', fill: 'FFDFF0EA' },
+  { value: 'on-the-way', label: 'On the way', fill: 'FFDEEDF8' },
+  { value: 'completed', label: 'Completed', fill: 'FFE1F1DE' },
+  { value: 'canceled', label: 'Canceled', fill: 'FFF8E2DD' },
 ];
+
+/* The same five states in the exported sheet, keyed by the label rather than the
+   slug because the label is what the sheet carries. A status this table does not
+   have simply gets no fill — an unrecognised value is left white rather than
+   given a colour that would claim to be a state it is not.
+
+   Deliberately much paler than the pills on the admin page: a spreadsheet is
+   read in a column and often printed, where the saturated web colours would
+   read as five loud bands and waste a cartridge. These are tints of the same
+   hues, all above 17:1 against the default black text, so the cell is still
+   unmistakable and still legible in greyscale or for a colour-blind reader —
+   the word in the cell carries the meaning either way, the colour only saves
+   the owner scanning for "which of these are still to go". */
+export const STATUS_FILLS = Object.fromEntries(
+  ORDER_STATUSES.map((status) => [status.label, status.fill]),
+);
 
 /* Applied by the database default as well as by saveOrder, so a row is never
    left without one even if it were written by something other than this code. */

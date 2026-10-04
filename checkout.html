@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/media/icon-512.png" />
     <link rel="apple-touch-icon" href="/media/apple-touch-icon.png" />
     <link rel="preload" as="image" href="/media/logo.png" />
-    <meta name="description" content="Request an Uppalapati Farms ghee order. Leave your details and we will call you to confirm payment and delivery." />
+    <meta name="description" content="Request an Uppalapati Farms ghee order. Leave your details and we will WhatsApp you to confirm payment and delivery." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -22,73 +22,115 @@
         <a class="checkout-back" href="/#shop">Back to the shop <span aria-hidden="true">↗</span></a>
       </header>
 
-      <div data-checkout-content>
-        <section class="checkout-intro" aria-labelledby="checkout-title">
-          <h1 id="checkout-title">Place your order.</h1>
-          <p><strong>No payment is taken here.</strong> We call you to confirm the order, agree payment, and arrange delivery.</p>
+      <section class="checkout-intro" aria-labelledby="checkout-title">
+        <h1 id="checkout-title">Place your order.</h1>
+        <p><strong>No payment is taken here.</strong> We WhatsApp you to confirm the order, agree payment, and arrange delivery.</p>
+      </section>
+
+      <div class="checkout-layout">
+        <section class="checkout-summary" aria-labelledby="checkout-summary-title">
+          <p class="checkout-summary__label" id="checkout-summary-title">Selected products</p>
+          <div class="checkout-summary__items" data-checkout-items></div>
+          <p class="checkout-summary__empty" data-checkout-empty hidden>Your cart is empty. Return to the shop to choose a jar.</p>
+          <p class="checkout-summary__lead" data-checkout-lead hidden></p>
+          <div class="checkout-summary__total"><span>Total</span><strong data-checkout-total>₹0</strong></div>
         </section>
 
-        <div class="checkout-layout">
-          <section class="checkout-summary" aria-labelledby="checkout-summary-title">
-            <p class="checkout-summary__label" id="checkout-summary-title">Selected products</p>
-            <div class="checkout-summary__items" data-checkout-items></div>
-            <p class="checkout-summary__empty" data-checkout-empty hidden>Your cart is empty. Return to the shop to choose a jar.</p>
-            <p class="checkout-summary__lead" data-checkout-lead hidden></p>
-            <div class="checkout-summary__total"><span>Total</span><strong data-checkout-total>₹0</strong></div>
-          </section>
-
-          <section data-checkout-details aria-labelledby="delivery-title">
-            <h2 class="sr-only" id="delivery-title">Delivery details</h2>
-            <form class="checkout-form" data-checkout-form>
-              <label class="checkout-form__wide" for="full-name">Full name
-                <input id="full-name" name="fullName" type="text" autocomplete="name" minlength="2" maxlength="80" required />
-              </label>
-              <label for="mobile">Mobile number
-                <input id="mobile" name="mobile" type="tel" autocomplete="tel" inputmode="numeric" pattern="[6-9][0-9]{9}" minlength="10" maxlength="10" title="Enter a valid 10-digit Indian mobile number" required />
-              </label>
-              <label for="email">Email <span aria-hidden="true">(optional)</span>
-                <input id="email" name="email" type="email" autocomplete="email" maxlength="120" />
-              </label>
-              <label class="checkout-form__wide" for="address">Delivery address
-                <textarea id="address" name="address" autocomplete="street-address" rows="4" minlength="8" maxlength="240" required></textarea>
-              </label>
-              <label for="city">City
-                <input id="city" name="city" type="text" autocomplete="address-level2" minlength="2" maxlength="80" required />
-              </label>
-              <label for="state">State
-                <input id="state" name="state" type="text" autocomplete="address-level1" minlength="2" maxlength="80" required />
-              </label>
-              <label for="pincode">PIN code
-                <input id="pincode" name="pincode" type="text" autocomplete="postal-code" inputmode="numeric" pattern="[1-9][0-9]{5}" minlength="6" maxlength="6" title="Enter a valid 6-digit PIN code" required />
-              </label>
-              <label class="checkout-form__wide" for="delivery-date">Preferred delivery date
-                <input id="delivery-date" name="deliveryDate" type="date" required />
-              </label>
-              <p class="checkout-form__hint" data-delivery-hint></p>
-              <p class="checkout-form__honeypot" aria-hidden="true">
-                <label for="company">Company</label>
-                <input id="company" name="company" type="text" tabindex="-1" autocomplete="off" />
-              </p>
-              <p class="checkout-form__note" id="checkout-note">Nothing is charged here. We will WhatsApp you to confirm the order and arrange delivery.</p>
-              <button class="checkout-button checkout-form__submit" type="submit" data-checkout-submit>Request this order</button>
-              <p class="checkout-form__status" data-checkout-status aria-live="polite"></p>
-            </form>
-          </section>
-        </div>
+        <section data-checkout-details aria-labelledby="delivery-title">
+          <h2 class="sr-only" id="delivery-title">Delivery details</h2>
+          <form class="checkout-form" data-checkout-form>
+            <label class="checkout-form__wide" for="full-name">Full name
+              <input id="full-name" name="fullName" type="text" autocomplete="name" minlength="2" maxlength="80" required />
+            </label>
+            <label for="mobile">Mobile number
+              <input id="mobile" name="mobile" type="tel" autocomplete="tel" inputmode="numeric" pattern="[6-9][0-9]{9}" minlength="10" maxlength="10" title="Enter a valid 10-digit Indian mobile number" required />
+            </label>
+            <label for="email">Email <span aria-hidden="true">(optional)</span>
+              <input id="email" name="email" type="email" autocomplete="email" maxlength="120" />
+            </label>
+            <label class="checkout-form__wide" for="address">Delivery address
+              <textarea id="address" name="address" autocomplete="street-address" rows="4" minlength="8" maxlength="240" required></textarea>
+            </label>
+            <label for="city">City
+              <input id="city" name="city" type="text" autocomplete="address-level2" minlength="2" maxlength="80" required />
+            </label>
+            <label for="state">State
+              <input id="state" name="state" type="text" autocomplete="address-level1" minlength="2" maxlength="80" required />
+            </label>
+            <label for="pincode">PIN code
+              <input id="pincode" name="pincode" type="text" autocomplete="postal-code" inputmode="numeric" pattern="[1-9][0-9]{5}" minlength="6" maxlength="6" title="Enter a valid 6-digit PIN code" required />
+            </label>
+            <label class="checkout-form__wide" for="delivery-date">Preferred delivery date
+              <input id="delivery-date" name="deliveryDate" type="date" required />
+            </label>
+            <p class="checkout-form__hint" data-delivery-hint></p>
+            <p class="checkout-form__honeypot" aria-hidden="true">
+              <label for="company">Company</label>
+              <input id="company" name="company" type="text" tabindex="-1" autocomplete="off" />
+            </p>
+            <p class="checkout-form__note" id="checkout-note">Nothing is charged here. We will WhatsApp you to confirm the order and arrange delivery.</p>
+            <button class="checkout-button checkout-form__submit" type="submit" data-checkout-submit>Request this order</button>
+            <p class="checkout-form__status" data-checkout-status aria-live="polite"></p>
+          </form>
+        </section>
       </div>
-
-      <section class="checkout-confirmation" data-checkout-confirmation role="status" tabindex="-1" hidden>
-        <h2>Request received.</h2>
-        <p class="checkout-confirmation__lead">Thank you — your order is recorded and we will be in touch on WhatsApp.</p>
-        <p class="checkout-confirmation__number">
-          We will message you on
-          <strong data-confirmation-number></strong>
-        </p>
-        <p>Your reference is <strong data-confirmation-reference></strong>. Quote it if you call us about this order.</p>
-        <p>Nothing was charged. Payment is settled when we confirm your order with you.</p>
-        <a href="/#shop">Return to the shop <span aria-hidden="true">↗</span></a>
-      </section>
     </main>
+
+    <!-- The receipt. Opened as a modal the moment an order is recorded, because
+         the two things on it — our WhatsApp number and the order number — are the
+         two things the customer cannot get back once the page is closed, and a
+         banner at the bottom of a scrolled form is where that information goes
+         to be missed.
+
+         Printed as-is: the card is already light with dark text, so the print
+         rules in styles.css only have to hide the page behind it rather than
+         re-colour it. -->
+    <dialog class="receipt" data-checkout-confirmation aria-labelledby="receipt-title" tabindex="-1">
+      <article class="receipt__card">
+        <header class="receipt__header">
+          <img class="receipt__logo" src="/media/logo.png" alt="" width="34" height="34" decoding="async" />
+          <p class="receipt__farm">Uppalapati Farms</p>
+          <h2 id="receipt-title">Order received.</h2>
+          <p class="receipt__lead">Thank you. Your order is recorded and we will be in touch shortly.</p>
+        </header>
+
+        <!-- The order number is the largest thing on the card. It is the one
+             value the customer has to read back to us and the one we have to
+             match to a row in the order book, so it is set in mono at a size
+             that survives being photographed off someone else's phone. -->
+        <p class="receipt__reference">
+          <span>Order number</span>
+          <strong data-confirmation-reference>—</strong>
+        </p>
+
+        <!-- Stated as a number rather than a link to a contact card, because the
+             customer has to be able to check it against their own phone before
+             they trust a message that claims to be from us. -->
+        <p class="receipt__number">
+          <span>We will message you on WhatsApp at</span>
+          <strong data-confirmation-number>—</strong>
+        </p>
+
+        <p class="receipt__note">Nothing has been charged. We will confirm the order with you on that WhatsApp chat, agree the delivery day, and take payment there.</p>
+
+        <div class="receipt__actions">
+          <!-- `window.print()` rather than a generated file: the browser's own
+               print dialog is where "Save as PDF" already lives, on every
+               platform, and it lets the customer print to paper just as easily.
+               A button that silently produced a download would be less capable,
+               not more. -->
+          <button type="button" class="receipt__button receipt__button--print" data-confirmation-print>
+            Print / save as PDF
+          </button>
+          <button type="button" class="receipt__button" data-confirmation-close>
+            Close
+          </button>
+        </div>
+
+        <p class="receipt__hint">Keeping this on your phone? A screenshot works just as well.</p>
+      </article>
+    </dialog>
+
     <script type="module" src="/src/checkout.js"></script>
   </body>
 </html>

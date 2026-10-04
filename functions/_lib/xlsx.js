@@ -153,8 +153,18 @@ function isNumeric(value) {
 
 /* Builds a single-sheet workbook. `columns` is a list of header strings; each
    row is an array the same length. Numbers stay numbers so Excel can sum and
-   sort them; everything else is written as inline text. */
-export function buildWorkbook(columns, rows) {
+   sort them; everything else is written as inline text.
+
+   `options.tintColumn` is an index into the row; cells in that column are
+   filled with whichever colour `options.tints` holds for their text, and left
+   unfilled when it holds none. Both are optional and both are deliberately
+   ignorant of what a tint means — the caller supplies the colours and says which
+   column they belong to, so this writer stays a writer and the shop's status
+   list stays in `src/order-status.js` with everything else about status. */
+export function buildWorkbook(columns, rows, options = {}) {
+  const tints = options.tints ?? {};
+  const tintNames = Object.keys(tints);
+
   const all = [columns, ...rows];
   const widest = all.reduce((max, row) => Math.max(max, row.length), 1);
 
@@ -164,10 +174,18 @@ export function buildWorkbook(columns, rows) {
       for (let column = 0; column < widest; column += 1) {
         const value = row[column] ?? '';
         const reference = `${columnName(column)}${rowIndex + 1}`;
+
+        /* Resolved to a cellXfs index, which is one per tint: the header is 1 and
+           the plain cells are 0, so the tints start at 2. Looked up before the
+           numeric test so a tint could apply to a number too, though today the
+           only tinted column holds text. */
+        const tint = tintNames.indexOf(String(value));
+        const tintStyle = rowIndex > 0 && column === options.tintColumn && tint !== -1 ? 2 + tint : -1;
+
         if (isNumeric(value)) {
-          cells.push(`<c r="${reference}"><v>${value}</v></c>`);
+          cells.push(`<c r="${reference}"${tintStyle === -1 ? '' : ` s="${tintStyle}"`}><v>${value}</v></c>`);
         } else {
-          const style = rowIndex === 0 ? ' s="1"' : '';
+          const style = rowIndex === 0 ? ' s="1"' : tintStyle === -1 ? '' : ` s="${tintStyle}"`;
           cells.push(`<c r="${reference}"${style} t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`);
         }
       }
@@ -186,9 +204,24 @@ export function buildWorkbook(columns, rows) {
      them out produced a file Excel refused: opening it raised the "we found a
      problem with some content" repair prompt and silently rebuilt the styles on
      the way in. Index 0 is always "no fill" and "no border"; index 1 is the
-     grey125 that Excel itself writes and expects to find. */
+     grey125 that Excel itself writes and expects to find.
+
+     The caller's tints are appended to `fills`, which makes their fillIds
+     2 and up, and each gets a matching <xf> at the same offset in `cellXfs` so
+     a cell can point at it. A solid fill takes its colour from `fgColor`; the
+     `bgColor` of indexed 64 is what Excel itself writes and is what it expects
+     to find behind a solid fill. `applyFill` is required — without it Excel is
+     free to ignore the fillId. */
+  const fills = tintNames
+    .map((name) => `<fill><patternFill patternType="solid"><fgColor rgb="${tints[name]}"/><bgColor indexed="64"/></patternFill></fill>`)
+    .join('');
+
+  const tintXfs = tintNames
+    .map((_name, index) => `<xf numFmtId="0" fontId="0" fillId="${2 + index}" borderId="0" xfId="0" applyFill="1"/>`)
+    .join('');
+
   const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleLight16"/></styleSheet>`;
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="${2 + tintNames.length}"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>${fills}</fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${2 + tintNames.length}"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>${tintXfs}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleLight16"/></styleSheet>`;
 
   const entries = [
     [

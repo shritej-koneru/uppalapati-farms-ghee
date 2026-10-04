@@ -75,7 +75,10 @@ export default [
     /* The tooling in scripts/ runs under Node, so it needs the Node globals
        rather than the browser or Workers ones above. check-xlsx.mjs reads the
        generated sheet back out of the archive with TextDecoder, which is why
-       that is listed alongside process. */
+       that is listed alongside process. check-order.mjs builds a checkout body
+       per assertion and gives each one a fresh idempotency key with
+       crypto.randomUUID — the same generator the real form uses, so the check
+       is exercising the actual shape rather than a stand-in. */
     files: ['scripts/**/*.mjs'],
     languageOptions: {
       ecmaVersion: 'latest',
@@ -85,7 +88,8 @@ export default [
         console: 'readonly',
         TextEncoder: 'readonly',
         TextDecoder: 'readonly',
-        URL: 'readonly'
+        URL: 'readonly',
+        crypto: 'readonly'
       }
     },
     rules: {

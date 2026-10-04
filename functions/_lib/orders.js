@@ -26,7 +26,20 @@ const HONEYPOT_FIELD = 'company';
    spam. What it will not accept is anything that is not ten digits starting 6-9,
    because that is what WhatsApp cannot reach. */
 function normaliseMobile(value) {
-  const digits = String(value ?? '').replace(/[\s()-]/g, '').replace(/^0+/, '');
+  const digits = String(value ?? '').replace(/[\s()+-]/g, '').replace(/^0+/, '');
+
+  /* The complete ten-digit form is tried before the country code is stripped,
+     because an Indian mobile number is allowed to begin with 91 and the two
+     cannot be told apart from the string alone: `9198765432` is a real number in
+     Guntur, and `91` is also the prefix of every number typed in international
+     form. Stripping first turned the first into eight digits and refused it, so a
+     customer whose number happened to start 91 could not order at all.
+
+     Stripping only when the number is not already complete costs nothing — the
+     ten digits that come back are the same ten — and it is the only ordering
+     that cannot refuse a number WhatsApp could reach. */
+  if (/^[6-9]\d{9}$/.test(digits)) return digits;
+
   const local = digits.replace(/^(?:0?91|0091)/, '');
   return /^[6-9]\d{9}$/.test(local) ? local : null;
 }
@@ -134,22 +147,82 @@ export function validateOrder(body) {
   };
 }
 
-/* ---------- Writing ----------
+/* ---------- Order references ----------
 
-   The reference the owner reads back over the phone is taken from a counter
-   bumped in a single statement, so two orders arriving at once cannot be handed
-   the same number. The column is incremented before the row is written, which
-   means a reference is never reused — the reverse of what a "SELECT count(*)
-   then insert" would do under load. */
+   `041026-005`: the day the order was placed in the farm's own timezone, then the
+   order number within that day. Read out as "the fourth of October 2026, order
+   five", which is the sentence a customer and the owner will actually have when
+   one of them rings the other about a jar.
 
-export async function nextReference(env) {
+   The counter is bumped in a single statement before the row is written, so two
+   orders arriving at once cannot be handed the same number, and a reference is
+   never reused — the reverse of what a "SELECT count(*) then insert" would do
+   under load.
+
+   India has no daylight saving and has not had one since 1945, so a fixed offset
+   is exact here rather than an approximation. It lives in one place because the
+   date an order is numbered against and the time shown on the sheet have to come
+   from the same clock. */
+export const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+
+/* Shifted rather than formatted with a locale: a Worker has no time zone of its
+   own, and `toLocaleDateString` with one would depend on the ICU data the
+   runtime happens to carry. Reading the shifted date's UTC fields is the same
+   trick as writing `toIst`, and is why this works identically in a test and in
+   production. */
+function referenceDay(now) {
+  const ist = new Date(now.getTime() + IST_OFFSET_MS);
+  const day = String(ist.getUTCDate()).padStart(2, '0');
+  const month = String(ist.getUTCMonth() + 1).padStart(2, '0');
+  const year = String(ist.getUTCFullYear()).slice(-2);
+  return `${day}${month}${year}`;
+}
+
+/* The shape `nextReference` produces, and the only thing `setOrderStatus` will
+   accept as a reference. Anchored and checked here rather than at the call site
+   so the two cannot drift into disagreeing about what a reference looks like,
+   which is the kind of drift that quietly makes every status change fail with a
+   422 nobody can explain.
+
+   The date is any six digits rather than a real date: it is only ever compared
+   against a reference that came out of `nextReference` in the first place, so
+   validating it as a calendar date would reject nothing and cost a lookup. */
+export function isReference(value) {
+  return /^\d{6}-\d{3,}$/.test(value);
+}
+
+/* One counter row per day, so the sequence restarts at 1 each morning and the
+   number on the receipt is the number the owner saw that day. The day is part of
+   the reference, so `041026-001` and `051026-001` cannot collide and the restart
+   costs nothing.
+
+   Rows are never removed, so the table grows by one a day — a few hundred rows a
+   year, against a database that holds the entire order book. The reset workflow
+   clears them.
+
+   The upsert does both jobs in one statement: it creates the day's row on the
+   first order of the morning and increments it on every one after. Doing that as
+   an `UPDATE` and an `INSERT` would leave a window where two orders arriving
+   together both failed to find a row and both inserted — and `name` is the
+   primary key, so the second would have thrown and the customer would have been
+   told their order was not recorded when it very nearly was. */
+export async function nextReference(env, now = new Date()) {
+  const day = referenceDay(now);
   const row = await env.GHEE_ORDERS.prepare(
-    "UPDATE counters SET value = value + 1 WHERE name = 'order' RETURNING value",
-  ).first();
+    `INSERT INTO counters (name, value) VALUES (?1, 1)
+       ON CONFLICT(name) DO UPDATE SET value = value + 1
+     RETURNING value`,
+  )
+    .bind(`order-${day}`)
+    .first();
+
   const sequence = Number(row?.value);
   if (!Number.isFinite(sequence)) throw new Error('order counter did not return a value');
-  const year = new Date().getUTCFullYear();
-  return `UP-${year}-${String(sequence).padStart(4, '0')}`;
+
+  /* Three digits, not a cap. A day with a thousand orders is not a thing this
+     shop will see, and truncating it would hand two customers the same
+     reference — far worse than a reference with four digits. */
+  return `${day}-${String(sequence).padStart(3, '0')}`;
 }
 
 export async function saveOrder(env, order, requestKey, flagged = false) {
@@ -226,9 +299,9 @@ export async function listOrders(env) {
    and `reference` are 422s the caller can act on, `missing` means the row is not
    there at all, which is a 404 rather than a success that changed nothing. */
 export async function setOrderStatus(env, reference, status) {
-  const normalised = String(reference ?? '').trim().toUpperCase();
+  const wanted = String(reference ?? '').trim();
 
-  if (!/^UP-\d{4}-\d{4,}$/.test(normalised)) return { ok: false, reason: 'reference' };
+  if (!isReference(wanted)) return { ok: false, reason: 'reference' };
   if (!isOrderStatus(status)) return { ok: false, reason: 'status' };
 
   /* Read back in the same statement that writes. `RETURNING` gives the value
@@ -238,9 +311,9 @@ export async function setOrderStatus(env, reference, status) {
   const row = await env.GHEE_ORDERS.prepare(
     'UPDATE orders SET status = ?1 WHERE reference = ?2 RETURNING status',
   )
-    .bind(status, normalised)
+    .bind(status, wanted)
     .first();
 
   if (!row) return { ok: false, reason: 'missing' };
-  return { ok: true, reference: normalised, status: row.status };
+  return { ok: true, reference: wanted, status: row.status };
 }

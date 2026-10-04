@@ -1,6 +1,7 @@
 import { buildWorkbook } from '../functions/_lib/xlsx.js';
-import { SHEET_COLUMNS, toSheetRow } from '../functions/api/orders.js';
+import { SHEET_COLUMNS, SHEET_TINTS, toSheetRow } from '../functions/api/orders.js';
 import { ORDER_STATUSES, statusLabel } from '../src/order-status.js';
+import { isReference } from '../functions/_lib/orders.js';
 
 /* Validates the shape of the generated order sheet.
 
@@ -93,6 +94,18 @@ function attr(tag, name) {
   return match ? match[1] : null;
 }
 
+/* A -> AA. Not imported from the writer on purpose: the check should not take the
+   writer's word for how it names columns, only how it fills them. */
+function columnNameFor(index) {
+  let name = '';
+  let value = index;
+  while (value >= 0) {
+    name = String.fromCharCode(65 + (value % 26)) + name;
+    value = Math.floor(value / 26) - 1;
+  }
+  return name;
+}
+
 function declaredCount(xml, tag) {
   const match = new RegExp(`<${tag}\\b[^>]*\\bcount="(\\d+)"`).exec(xml);
   return match ? Number(match[1]) : null;
@@ -108,7 +121,7 @@ function declaredCount(xml, tag) {
    status under the next customer's name, which is not the kind of error anyone
    notices until a call is taken against the wrong jar. */
 const sampleOrder = {
-  reference: 'UP-2026-0002',
+  reference: '041026-002',
   created_at: '2026-10-04T08:54:44.781Z',
   full_name: 'Ravi & Sons < dairy',
   mobile: '9876543210',
@@ -148,6 +161,109 @@ for (const status of ORDER_STATUSES) {
 }
 check(statusLabel('nonsense') === 'nonsense', 'an unrecognised status should be shown as itself, not guessed at');
 
+/* The reference the owner reads off the sheet is the reference they will paste
+   back in to change a status. If the two ever disagreed about its shape, the
+   sheet would hand out a value the server refuses with a 422, and the owner
+   would be left holding a cell that looks like a reference and is not one. The
+   same `isReference` guards both ends, so this is cheap to assert and worth it. */
+check(
+  isReference(sampleOrder.reference),
+  `the sample reference "${sampleOrder.reference}" is one setOrderStatus would accept`,
+);
+
+/* ---------- Status cells are colour-coded ----------
+
+   Built from the real columns, row builder and — importantly — the real
+   `SHEET_TINTS` the endpoint passes, so this asserts the export as the owner
+   receives it. The generic style checks further down would catch a fillId pointing
+   past the end of `fills`; these catch the quieter failures — the colour never
+   being applied, applied to the wrong column, or applied to the wrong cell — which
+   produce a perfectly valid sheet in which the status column is simply white. */
+check(
+  SHEET_TINTS.tintColumn === 0,
+  `Status should lead the sheet, but the colour is applied to column ${SHEET_TINTS.tintColumn}`,
+);
+
+{
+  const tinted = readParts(
+    buildWorkbook(
+      SHEET_COLUMNS,
+      [
+        ...ORDER_STATUSES.map((status) => toSheetRow({ ...sampleOrder, status: status.value })),
+        toSheetRow({ ...sampleOrder, status: 'nonsense' }),
+      ],
+      SHEET_TINTS,
+    ),
+  );
+
+  const tintedSheet = tinted.get('xl/worksheets/sheet1.xml') ?? '';
+  const tintedStyles = tinted.get('xl/styles.xml') ?? '';
+
+  const cellAt = (ref) => new RegExp(`<c\\b[^>]*\\br="${ref}"[^>]*>`).exec(tintedSheet)?.[0] ?? '';
+
+  /* Style index -> the ARGB actually written into the fill it points at, so the
+     assertion follows a cell all the way to the colour the owner will see rather
+     than stopping at "it had a style".
+
+     The fill's colour lives on a child `<fgColor>`, not on the `<fill>` tag
+     itself, so each fill is taken whole. `openTags` would return only opening-tag
+     attributes here and quietly report every status as unfilled. */
+  const fillsBlock = tintedStyles.slice(
+    tintedStyles.indexOf('<fills'),
+    tintedStyles.indexOf('</fills>'),
+  );
+  const rgbByFillId = [...fillsBlock.matchAll(/<fill\b[^>]*>([\s\S]*?)<\/fill>/g)].map(
+    (match, index) => ({
+      index,
+      rgb: /<fgColor\b[^>]*\brgb="([0-9A-Fa-f]{8})"/.exec(match[1])?.[1] ?? null,
+    }),
+  );
+
+  const xfsBlock = tintedStyles.slice(
+    tintedStyles.indexOf('<cellXfs'),
+    tintedStyles.indexOf('</cellXfs>'),
+  );
+  const xfs = openTags(xfsBlock, 'xf');
+
+  const rgbOfStyle = (styleIndex) => {
+    if (styleIndex === null) return null;
+    const fillId = /fillId="(\d+)"/.exec(xfs[Number(styleIndex)] ?? '')?.[1];
+    if (fillId === undefined) return null;
+    return rgbByFillId[Number(fillId)]?.rgb ?? null;
+  };
+  const styleOf = (ref) => / s="(\d+)"/.exec(cellAt(ref))?.[1] ?? null;
+
+  ORDER_STATUSES.forEach((status, index) => {
+    const ref = `A${index + 2}`;
+    const rgb = rgbOfStyle(styleOf(ref));
+    check(
+      rgb?.toUpperCase() === status.fill.toUpperCase(),
+      `"${status.label}" should be filled ${status.fill} but ${ref} is ${rgb ?? 'unfilled'}`,
+    );
+  });
+
+  /* A status the table does not know is left white. Giving it a colour would be
+     a claim about what state an order is in, and we do not know that. */
+  const unknownRow = ORDER_STATUSES.length + 2;
+  check(
+    rgbOfStyle(styleOf(`A${unknownRow}`)) === null,
+    `an unrecognised status should be left unfilled, but A${unknownRow} has a colour`,
+  );
+
+  /* The header is bold and never tinted. A coloured header row would read as an
+     order in that state. */
+  check(attr(cellAt('A1'), 's') === '1', 'the Status header should be the bold style, not a tint');
+  check(attr(cellAt('B1'), 's') === '1', 'the header beside Status should also be bold');
+
+  /* Only the status column is coloured. Total is a number in the middle of the
+     sheet and must stay unfilled, or the sheet turns into a colour key. */
+  const totalRef = `${columnNameFor(SHEET_COLUMNS.indexOf('Total'))}2`;
+  check(
+    !/\bs="/.test(cellAt(totalRef)),
+    `${totalRef} is the Total cell and should carry no style, got "${cellAt(totalRef)}"`,
+  );
+}
+
 /* ---------- The parts themselves ---------- */
 
 /* A toy sheet, because four columns is enough to exercise the writer. The awkward
@@ -158,8 +274,8 @@ check(statusLabel('nonsense') === 'nonsense', 'an unrecognised status should be 
    rather than blanks. */
 const columns = ['Reference', 'Customer', 'WhatsApp', 'Total'];
 const rows = [
-  ['UP-2026-0002', 'Ravi & Sons < dairy', '919876543210', 10247],
-  ['UP-2026-0001', 'AUDIT Smoke Test', '919000000000', 4248],
+  ['041026-002', 'Ravi & Sons < dairy', '919876543210', 10247],
+  ['041026-001', 'AUDIT Smoke Test', '919000000000', 4248],
 ];
 
 const parts = readParts(buildWorkbook(columns, rows));
