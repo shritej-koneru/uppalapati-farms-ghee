@@ -1,0 +1,93 @@
+name: Reset the order book
+
+# Empties the production order book and sets the order counter back to zero, so
+# the next real order is UP-2026-0001.
+#
+# Why this exists as a workflow rather than a documented command: the local
+# wrangler login on this machine belongs to a different Cloudflare account, so
+# `wrangler d1 execute --remote` fails against production with a "database could
+# not be found". CI is the only context holding a token that can reach it.
+#
+# The two statements are written out here rather than taken as an input. This
+# workflow runs with the same API token as the deploy, so anyone able to dispatch
+# a workflow could otherwise run arbitrary SQL against the live database. As
+# written it can only do one specific, reversible-in-effect thing, and the
+# confirmation input means it cannot be set off by a stray click.
+
+on:
+  # Manual only. This is never triggered by a push or a pull request.
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "clear the order book" to confirm. Every recorded order is deleted.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: order-book-reset
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    name: Clear orders and reset the counter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Refuse unless the confirmation is exact
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "clear the order book" ]; then
+            echo "::error::Confirmation did not match. Nothing was deleted."
+            exit 1
+          fi
+          echo "Confirmed."
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install
+        run: npm ci
+
+      # Recorded in the run log before anything is deleted, so the log is a
+      # record of what was there rather than only of the fact that it is gone.
+      - name: Record what is about to be deleted
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: npx wrangler d1 execute ghee-orders --remote --command \
+          "SELECT reference, created_at, full_name, mobile, total FROM orders ORDER BY created_at DESC"
+
+      - name: Delete every order and reset the counter
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npx wrangler d1 execute ghee-orders --remote --command \
+            "DELETE FROM orders; UPDATE counters SET value = 0 WHERE name = 'order';"
+
+      # Anything other than zero orders and a zero counter means the statements
+      # did not both take, and the run should not read as a success. Checked with
+      # grep against wrangler's JSON rather than by parsing it, so a change in
+      # wrangler's output shape cannot quietly turn this into a no-op that always
+      # passes: no match means a non-zero exit and the job fails.
+      - name: Confirm the order book is empty
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npx wrangler d1 execute ghee-orders --remote --json --command \
+            "SELECT (SELECT COUNT(*) FROM orders) AS orders, (SELECT value FROM counters WHERE name = 'order') AS counter" \
+            | tee result.json
+          grep -q '"orders": 0' result.json || { echo "::error::The orders table is not empty."; exit 1; }
+          grep -q '"counter": 0' result.json || { echo "::error::The order counter was not reset."; exit 1; }
+          echo "Order book is empty and the counter is back to zero."
