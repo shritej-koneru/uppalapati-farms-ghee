@@ -57,6 +57,10 @@
 
         <section class="admin-orders" aria-labelledby="orders-title">
           <h2 id="orders-title">Orders</h2>
+          <!-- Confirms each status change, and says so when one failed to save.
+               aria-live because it is the only feedback a save produces: the
+               dropdown moving on its own would say nothing to a screen reader. -->
+          <p class="admin-statusbar" data-status-message aria-live="polite"></p>
           <div data-admin-orders></div>
         </section>
       </div>

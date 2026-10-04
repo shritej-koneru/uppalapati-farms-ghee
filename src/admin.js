@@ -1,4 +1,5 @@
 import { currency } from './catalogue.js';
+import { ORDER_STATUSES, isOrderStatus, statusLabel } from './order-status.js';
 
 const loginPanel = document.querySelector('[data-admin-login]');
 const app = document.querySelector('[data-admin-app]');
@@ -7,6 +8,13 @@ const loginStatus = document.querySelector('[data-login-status]');
 const ordersHost = document.querySelector('[data-admin-orders]');
 const summary = document.querySelector('[data-admin-summary]');
 const exportStatus = document.querySelector('[data-export-status]');
+const statusMessage = document.querySelector('[data-status-message]');
+
+/* The loaded order book, kept so a status change can correct the counts in the
+   summary without refetching. Refetching would rebuild the table and close any
+   row the owner has open, and would yank the dropdown out from under the pointer
+   they are still using. */
+let orders = [];
 
 /* Every call is same-origin and credentials are sent by default, so the session
    cookie rides along without being read by JavaScript — it is HttpOnly. There is
@@ -45,6 +53,108 @@ function saveBlob(bytes, filename, type) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
+/* ---------- The status picker ----------
+
+   A real <select> of the five statuses, wrapped in a <label> so it is named for
+   a screen reader without needing an id per row. `data-status` on the wrapper is
+   what the colour rules key off; it is written from the server's value, and
+   rewritten only once the server has confirmed the change, so a picker never
+   wears the colour of a status that was refused.
+
+   The confirmed value is kept in `data-status-saved` because a save that fails
+   has to put the dropdown back where it was. Without it the picker would sit
+   there showing the owner's choice as though it had been saved, which is the one
+   failure this control cannot be allowed to have. */
+function statusPicker(order) {
+  const current = isOrderStatus(order.status) ? order.status : ORDER_STATUSES[0].value;
+
+  const options = ORDER_STATUSES.map(
+    (status) =>
+      `<option value="${status.value}"${status.value === current ? ' selected' : ''}>${escapeHtml(status.label)}</option>`,
+  ).join('');
+
+  return `<label class="admin-status" data-status="${current}">
+      <span class="sr-only">Status for ${escapeHtml(order.reference)}</span>
+      <select data-status-for="${escapeHtml(order.reference)}" data-status-saved="${current}">${options}</select>
+    </label>`;
+}
+
+/* One delegated listener, like the expand toggle, because the table is rebuilt
+   wholesale whenever the orders reload. */
+async function onStatusChange(event) {
+  const select = event.target.closest('[data-status-for]');
+  if (!select) return;
+
+  const reference = select.dataset.statusFor;
+  const previous = select.dataset.statusSaved;
+  const chosen = select.value;
+
+  if (chosen === previous) return;
+
+  select.disabled = true;
+  statusMessage.textContent = '';
+
+  try {
+    const { response, body } = await api('/api/orders', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ reference, status: chosen }),
+    });
+
+    /* Both ways this can end badly have to put the picker back. A dead session
+       shows the login form, because the owner has to sign in again before
+       anything else on this page will work. */
+    if (response.status === 401) {
+      select.value = previous;
+      showLogin();
+      return;
+    }
+    if (!response.ok || !body?.ok) {
+      select.value = previous;
+      statusMessage.textContent = body?.error || `Could not set ${reference} to that status.`;
+      return;
+    }
+
+    /* The server's answer, not the selection: that is what was stored. */
+    const stored = body.status;
+    select.value = stored;
+    select.dataset.statusSaved = stored;
+    select.closest('.admin-status').dataset.status = stored;
+
+    const order = orders.find((row) => row.reference === reference);
+    if (order) order.status = stored;
+
+    renderSummary();
+
+    statusMessage.textContent = `${reference} is now ${statusLabel(stored)}.`;
+  } catch {
+    select.value = previous;
+    statusMessage.textContent = 'Could not reach the shop. That status was not saved.';
+  } finally {
+    select.disabled = false;
+  }
+}
+
+/* Counted from the order book rather than kept in a variable, so the counts
+   cannot fall out of step with the rows.
+
+   "Still to deliver" is the number the owner actually wants: every order that is
+   neither completed nor canceled, so it counts the ones already contacted and
+   already on the road as well as the ones untouched. */
+const CLOSED_STATUSES = new Set(['completed', 'canceled']);
+
+function renderSummary() {
+  const flagged = orders.filter((order) => order.flagged).length;
+  const value = orders.reduce((sum, order) => sum + order.total, 0);
+  const open = orders.filter((order) => !CLOSED_STATUSES.has(order.status)).length;
+
+  summary.textContent =
+    `${orders.length} order${orders.length === 1 ? '' : 's'} recorded · ` +
+    `${currency.format(value)} in total` +
+    (open ? ` · ${open} still to deliver` : '') +
+    (flagged ? ` · ${flagged} flagged for review` : '');
+}
+
 /* ---------- The order table ----------
 
    A row per order, scannable without scrolling. Two things are clickable and
@@ -61,7 +171,9 @@ function saveBlob(bytes, filename, type) {
 
    Both are real links and buttons, so they work by keyboard and announce
    themselves; neither is a click handler bolted onto a <td>. */
-function renderOrders(orders) {
+function renderOrders(list) {
+  orders = list;
+
   if (orders.length === 0) {
     /* Said here too, not just in the table, or the line above the table keeps
        whatever it last said — which on a first load is nothing at all. */
@@ -70,18 +182,13 @@ function renderOrders(orders) {
     return;
   }
 
-  const flagged = orders.filter((order) => order.flagged).length;
-  const value = orders.reduce((sum, order) => sum + order.total, 0);
-
-  summary.textContent =
-    `${orders.length} order${orders.length === 1 ? '' : 's'} recorded · ` +
-    `${currency.format(value)} in total` +
-    (flagged ? ` · ${flagged} flagged for review` : '');
+  renderSummary();
 
   const rows = orders
     .map((order) => {
       const detailId = `detail-${order.reference}`;
       return `<tr class="admin-row${order.flagged ? ' admin-row--flagged' : ''}">
+          <td class="admin-cell admin-cell--status">${statusPicker(order)}</td>
           <td class="admin-cell admin-cell--ref">
             <span class="admin-ref">${escapeHtml(order.reference)}</span>
             ${order.has_preorder ? '<span class="admin-tag">preorder</span>' : ''}
@@ -103,7 +210,7 @@ function renderOrders(orders) {
           <td class="admin-cell admin-cell--total">${currency.format(order.total)}</td>
         </tr>
         <tr class="admin-detail-row" id="${detailId}" data-detail="${escapeHtml(order.reference)}" hidden>
-          <td colspan="6">${detailPanel(order)}</td>
+          <td colspan="7">${detailPanel(order)}</td>
         </tr>`;
     })
     .join('');
@@ -113,6 +220,7 @@ function renderOrders(orders) {
         <caption class="sr-only">Orders received, newest first</caption>
         <thead>
           <tr>
+            <th scope="col">Status <span class="admin-th-hint">where it stands</span></th>
             <th scope="col">Reference</th>
             <th scope="col">Placed (IST)</th>
             <th scope="col">Customer <span class="admin-th-hint">click to expand</span></th>
@@ -125,7 +233,8 @@ function renderOrders(orders) {
       </table>
     </div>
     <p class="admin-legend">
-      Click a <strong>number</strong> to message that customer on WhatsApp with their order already written out.
+      Set the <strong>status</strong> of each order as you work through it. Click a
+      <strong>number</strong> to message that customer on WhatsApp with their order already written out.
       Click a <strong>name</strong> to open the full details.
     </p>`;
 }
@@ -322,6 +431,7 @@ document.querySelector('[data-admin-signout]').addEventListener('click', async (
 /* Attached once here rather than inside renderOrders, which rebuilds the whole
    table on every load and would otherwise stack a listener per refresh. */
 ordersHost.addEventListener('click', onTableClick);
+ordersHost.addEventListener('change', onStatusChange);
 
 /* ---------- Export ----------
 

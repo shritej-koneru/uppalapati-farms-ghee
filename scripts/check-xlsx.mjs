@@ -1,4 +1,6 @@
 import { buildWorkbook } from '../functions/_lib/xlsx.js';
+import { SHEET_COLUMNS, toSheetRow } from '../functions/api/orders.js';
+import { ORDER_STATUSES, statusLabel } from '../src/order-status.js';
 
 /* Validates the shape of the generated order sheet.
 
@@ -96,26 +98,71 @@ function declaredCount(xml, tag) {
   return match ? Number(match[1]) : null;
 }
 
-/* ---------- Build a sheet that exercises the awkward cases ---------- */
+/* ---------- The real sheet shape ----------
 
-const columns = [
-  'Reference',
-  'Customer',
-  'WhatsApp',
-  'Total',
-];
+   The checks below use a toy four-column sheet, because that is enough to
+   exercise the writer itself. These use the actual production columns and row
+   builder, because the invariant worth guarding is the one that lives between
+   the two: a row that is a different length from its headers. Nothing rejects
+   that — the sheet still opens without complaint — it just slides one order's
+   status under the next customer's name, which is not the kind of error anyone
+   notices until a call is taken against the wrong jar. */
+const sampleOrder = {
+  reference: 'UP-2026-0002',
+  created_at: '2026-10-04T08:54:44.781Z',
+  full_name: 'Ravi & Sons < dairy',
+  mobile: '9876543210',
+  email: null,
+  address: '12/4 Gandhi St, Nr SBI',
+  city: 'Guntur',
+  state: 'Andhra Pradesh',
+  pincode: '522001',
+  delivery_date: '2026-10-20',
+  items: '[]',
+  item_summary: '1 x One-litre ghee (1 L)',
+  total: 10247,
+  has_preorder: 0,
+  notified: 0,
+  flagged: 0,
+  status: 'on-the-way',
+};
+
+check(
+  SHEET_COLUMNS[0] === 'Status',
+  `the sheet should lead with Status, but leads with "${SHEET_COLUMNS[0]}"`,
+);
+
+const sampleRow = toSheetRow(sampleOrder);
+check(
+  sampleRow.length === SHEET_COLUMNS.length,
+  `toSheetRow returns ${sampleRow.length} values but the sheet has ${SHEET_COLUMNS.length} columns`,
+);
+
+/* Every status has to reach the sheet under its own name, and there must be no
+   status the sheet writer does not know about — the two lists are written in
+   different files and a value that is missing from either one would show up as a
+   blank or a raw slug in the owner's spreadsheet. */
+for (const status of ORDER_STATUSES) {
+  const cell = toSheetRow({ ...sampleOrder, status: status.value })[0];
+  check(cell === status.label, `status "${status.value}" reaches the sheet as "${cell}", not "${status.label}"`);
+}
+check(statusLabel('nonsense') === 'nonsense', 'an unrecognised status should be shown as itself, not guessed at');
+
+/* ---------- The parts themselves ---------- */
+
+/* A toy sheet, because four columns is enough to exercise the writer. The awkward
+   cases are chosen deliberately: an ampersand and an angle bracket in a cell
+   value is the case most likely to produce invalid XML, and an invalid sheet
+   part is the other way Excel would have refused this file. A number proves the
+   Total column is not quoted as text, and an empty cell proves the writer skips
+   rather than blanks. */
+const columns = ['Reference', 'Customer', 'WhatsApp', 'Total'];
 const rows = [
-  /* An ampersand and an angle bracket in a cell value is the case most likely to
-     produce invalid XML, and an invalid sheet part is the other way Excel would
-     have refused this file. A number proves the Total column is not quoted as
-     text, and an empty cell proves the writer skips rather than blanks. */
   ['UP-2026-0002', 'Ravi & Sons < dairy', '919876543210', 10247],
   ['UP-2026-0001', 'AUDIT Smoke Test', '919000000000', 4248],
 ];
 
 const parts = readParts(buildWorkbook(columns, rows));
-
-/* ---------- The parts themselves ---------- */
 
 for (const required of [
   '[Content_Types].xml',

@@ -44,7 +44,14 @@ CREATE TABLE IF NOT EXISTS orders (
   -- 1 when the request tripped the honeypot. The order is still recorded — a
   -- password manager writing into a hidden field must never cost a customer
   -- their order — but the owner can sort these out in one pass.
-  flagged       INTEGER NOT NULL DEFAULT 0
+  flagged       INTEGER NOT NULL DEFAULT 0,
+  -- Where the owner has got to with this order: pending, contacted, on-the-way,
+  -- completed or canceled. The permitted values live in src/order-status.js and
+  -- are checked there rather than by a CHECK constraint, so an unexpected value
+  -- comes back as a readable refusal instead of a database error nobody can act
+  -- on. Added by migration rather than in the CREATE TABLE on installs that
+  -- predate it — see db/migrations/.
+  status        TEXT NOT NULL DEFAULT 'pending'
 );
 
 CREATE INDEX IF NOT EXISTS idx_orders_created ON orders (created_at DESC);

@@ -10,6 +10,7 @@
    request writes nothing. */
 
 import { priceCart, summariseLines, earliestDeliveryDate, latestDeliveryDate, PREORDER_NOTICE_DAYS } from '../../src/pricing.js';
+import { isOrderStatus, DEFAULT_STATUS } from '../../src/order-status.js';
 
 /* A hidden field a person cannot see or tab to.
 
@@ -158,8 +159,8 @@ export async function saveOrder(env, order, requestKey, flagged = false) {
   await env.GHEE_ORDERS.prepare(
     `INSERT INTO orders
        (id, reference, request_key, created_at, full_name, mobile, email, address,
-        city, state, pincode, delivery_date, items, item_summary, total, has_preorder, flagged)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)`,
+        city, state, pincode, delivery_date, items, item_summary, total, has_preorder, flagged, status)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)`,
   )
     .bind(
       crypto.randomUUID(),
@@ -179,6 +180,10 @@ export async function saveOrder(env, order, requestKey, flagged = false) {
       order.total,
       order.hasPreorder,
       flagged ? 1 : 0,
+      /* Written rather than left to the column default: every other column is
+         named here, and an order that lands without a status would leave the
+         sheet and the page counting on a guess. */
+      DEFAULT_STATUS,
     )
     .run();
 
@@ -201,9 +206,41 @@ export async function findByRequestKey(env, requestKey) {
 export async function listOrders(env) {
   const result = await env.GHEE_ORDERS.prepare(
     `SELECT reference, created_at, full_name, mobile, email, address, city, state,
-            pincode, delivery_date, items, item_summary, total, has_preorder, notified, flagged
+            pincode, delivery_date, items, item_summary, total, has_preorder, notified, flagged, status
        FROM orders
       ORDER BY created_at DESC`,
   ).all();
   return result.results ?? [];
+}
+
+/* ---------- Moving an order on ----------
+
+   The owner's only write to an order that already exists. Three guards, all of
+   them load-bearing: the status must be one of the five in `order-status.js`,
+   the reference must look like a reference rather than being passed through to
+   the query, and the update matches on `reference`, which carries a UNIQUE index,
+   so at most one row can ever be affected and a crafted value cannot reach
+   another's.
+
+   Returns the status now stored. `reason` says which guard stopped it — `status`
+   and `reference` are 422s the caller can act on, `missing` means the row is not
+   there at all, which is a 404 rather than a success that changed nothing. */
+export async function setOrderStatus(env, reference, status) {
+  const normalised = String(reference ?? '').trim().toUpperCase();
+
+  if (!/^UP-\d{4}-\d{4,}$/.test(normalised)) return { ok: false, reason: 'reference' };
+  if (!isOrderStatus(status)) return { ok: false, reason: 'status' };
+
+  /* Read back in the same statement that writes. `RETURNING` gives the value
+     actually stored, so the page and the sheet cannot end up disagreeing about
+     one order, and an empty result is how "no such order" is detected without a
+     second round trip that could race with another change. */
+  const row = await env.GHEE_ORDERS.prepare(
+    'UPDATE orders SET status = ?1 WHERE reference = ?2 RETURNING status',
+  )
+    .bind(status, normalised)
+    .first();
+
+  if (!row) return { ok: false, reason: 'missing' };
+  return { ok: true, reference: normalised, status: row.status };
 }

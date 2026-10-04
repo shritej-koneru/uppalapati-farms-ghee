@@ -1,7 +1,7 @@
 /* ---------- /api/orders ----------
 
-   Two very different jobs share one route because they answer the same
-   question — "what orders exist?" — from two very different callers.
+   Three verbs share one route because they all answer questions about orders,
+   and because keeping them here means one auth check rather than three.
 
    POST is public. Anyone can place an order, so it validates everything, prices
    the cart from the server's own catalogue, and returns only the reference.
@@ -9,11 +9,21 @@
    GET is not public. It reads the whole order book, names, numbers and
    addresses included, and is refused without a signed-in owner session. There
    is no "list" query that returns a subset to an anonymous caller, because a
-   subset is still customer data. */
+   subset is still customer data.
+
+   PATCH moves one order's status along. Owner-only, like GET. */
 
 import { json, refuse, readJson } from '../_lib/http.js';
 import { isSignedIn } from '../_lib/session.js';
-import { validateOrder, isHoneypotFilled, saveOrder, findByRequestKey, listOrders } from '../_lib/orders.js';
+import {
+  validateOrder,
+  isHoneypotFilled,
+  saveOrder,
+  findByRequestKey,
+  listOrders,
+  setOrderStatus,
+} from '../_lib/orders.js';
+import { statusLabel } from '../../src/order-status.js';
 import { buildWorkbook } from '../_lib/xlsx.js';
 
 export async function onRequestPost({ request, env }) {
@@ -37,6 +47,27 @@ export async function onRequestPost({ request, env }) {
 
   const saved = await saveOrder(env, result.order, requestKey, isHoneypotFilled(body));
   return json({ ok: true, ...saved }, 201);
+}
+
+export async function onRequestPatch({ request, env }) {
+  if (!(await isSignedIn(request, env))) {
+    return refuse('Sign in to change an order.', 401);
+  }
+
+  const body = await readJson(request);
+  const result = await setOrderStatus(env, body?.reference, body?.status);
+
+  /* Three different refusals, because the owner can only act on one of them.
+     An unknown reference means the row went away under them; an unknown status
+     means this build is older than the page they are looking at. Neither is
+     worth a stack trace. */
+  if (!result.ok) {
+    if (result.reason === 'status') return refuse('That is not an order status.', 422);
+    if (result.reason === 'missing') return refuse('No order with that reference.', 404);
+    return refuse('Malformed request.', 422);
+  }
+
+  return json({ ok: true, ...result });
 }
 
 export async function onRequestGet({ request, env }) {
@@ -66,11 +97,21 @@ export async function onRequestGet({ request, env }) {
 }
 
 /* The sheet is the owner's working document, so it carries the columns needed
-   to pick, pack and invoice an order without opening anything else: who, where,
-   when, what, how much. `Notified` and `Flagged` are the two housekeeping
-   columns — the first marks orders an email has already gone out for, the second
-   marks rows a bot probably submitted. */
-const SHEET_COLUMNS = [
+   to pick, pack and invoice an order without opening anything else: where it
+   has got to, who, where, when, what, how much. `Notified` and `Flagged` are the
+   two housekeeping columns — the first marks orders an email has already gone
+   out for, the second marks rows a bot probably submitted.
+
+   `Status` leads, and leads on the order table too, because it is the first
+   thing the owner needs to know about a row and the first thing to filter on
+   once the sheet is in Excel. It carries the label rather than the stored value
+   so that sorting and filtering read "On the way" instead of "on-the-way".
+
+   Exported alongside `toSheetRow` so scripts/check-xlsx.mjs can hold the two to
+   the same length — a row that does not line up with its headers is a sheet
+   where one order's status is sitting under someone else's name. */
+export const SHEET_COLUMNS = [
+  'Status',
   'Reference',
   'Placed (IST)',
   'Placed (UTC)',
@@ -90,8 +131,9 @@ const SHEET_COLUMNS = [
   'Check',
 ];
 
-function toSheetRow(order) {
+export function toSheetRow(order) {
   return [
+    statusLabel(order.status),
     order.reference,
     toIst(order.created_at),
     order.created_at,
