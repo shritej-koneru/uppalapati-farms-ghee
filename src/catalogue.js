@@ -76,7 +76,7 @@ const productCopy = {
     specs: [
       ['Net weight', '500 ml'],
       ['Method', 'Bilona, slow-churned'],
-      ['Shelf life', '9 months, unopened'],
+      ['Shelf life', '1 year, unopened'],
       ['Storage', 'Keep away from direct sunlight'],
     ],
   },
@@ -86,7 +86,7 @@ const productCopy = {
     specs: [
       ['Net weight', '1 litre'],
       ['Method', 'Bilona, slow-churned'],
-      ['Shelf life', '9 months, unopened'],
+      ['Shelf life', '1 year, unopened'],
       ['Storage', 'Keep away from direct sunlight'],
     ],
   },

@@ -54,8 +54,8 @@ function tubArt(id, { label, sub, fill, fillTop, name }) {
     </g>
     <path d="M56,32 L144,32 L152,52 L48,52 Z" fill="#7c500c"/>
     <rect x="34" y="50" width="132" height="150" rx="26" fill="url(#ghee-${id})" stroke="rgba(255,248,225,0.42)" stroke-width="2"/>
-    <rect x="${fill}" y="${fillTop}" width="${200 - fill * 2}" height="${206 - fillTop}" rx="10" fill="${name === 'set curd' ? '#fbf7ee' : '#f6d67d'}" opacity="0.94"/>
-    <ellipse cx="100" cy="50" rx="60" ry="8" fill="${name === 'set curd' ? '#ffffff' : '#f8d372'}" opacity="0.95"/>
+    <rect x="${fill}" y="${fillTop}" width="${200 - fill * 2}" height="${206 - fillTop}" rx="10" fill="${name === 'pot curd' ? '#fbf7ee' : '#f6d67d'}" opacity="0.94"/>
+    <ellipse cx="100" cy="50" rx="60" ry="8" fill="${name === 'pot curd' ? '#ffffff' : '#f8d372'}" opacity="0.95"/>
     <rect x="46" y="62" width="14" height="126" rx="7" fill="rgba(255,255,255,0.26)"/>
     <rect x="42" y="118" width="116" height="70" rx="8" fill="#f6f1e7" stroke="rgba(58,44,18,0.14)"/>
     <text x="100" y="140" text-anchor="middle" font-family="${LABEL_SERIF}" font-size="12" letter-spacing="1.4" font-weight="600" fill="#3a2c12">UPPALAPATI</text>
@@ -71,7 +71,7 @@ export function bottleArt(id, kind = 'bottle-1000') {
     return tubArt(id, { name: 'cultured butter', label: 'CULTURED BUTTER', sub: '500 g • PREORDER', fill: 44, fillTop: 92 });
   }
   if (kind === 'curd-800') {
-    return tubArt(id, { name: 'set curd', label: 'SET CURD', sub: '800 g • PREORDER', fill: 40, fillTop: 70 });
+    return tubArt(id, { name: 'pot curd', label: 'POT CURD', sub: '800 g • PREORDER', fill: 40, fillTop: 70 });
   }
   if (kind === 'bottle-500') {
     return `<svg viewBox="0 0 120 214" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Uppalapati Farms 500 ml ghee bottle">

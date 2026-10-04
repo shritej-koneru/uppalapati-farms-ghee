@@ -34,7 +34,7 @@ export const pricing = {
     preorder: true,
   },
   curd: {
-    name: 'Set curd',
+    name: 'Pot curd',
     size: '800 g',
     price: 249,
     preorder: true,
