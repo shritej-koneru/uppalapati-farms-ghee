@@ -1922,18 +1922,24 @@ body.is-ready .loading-screen {
   box-shadow: inset 2px 0 0 #d78376;
 }
 
-/* ---------- The two clickable things ---------- */
+/* ---------- The two clickable things ----------
 
-.admin-name {
-  color: var(--cream);
-  font-weight: 500;
+   The number is the link out to WhatsApp and keeps the mono treatment, since a
+   phone number is read digit by digit. The name is the expander and is styled
+   like a name, so the two never read as the same kind of thing. */
+
+.admin-number {
+  color: var(--gold-light);
+  font-family: var(--mono);
+  font-size: 0.75rem;
   text-decoration-color: rgba(201, 168, 106, 0.5);
   text-underline-offset: 3px;
+  white-space: nowrap;
 }
 
-.admin-name:hover,
-.admin-name:focus-visible {
-  color: var(--gold-light);
+.admin-number:hover,
+.admin-number:focus-visible {
+  color: var(--cream);
   text-decoration-color: currentColor;
 }
 
@@ -1944,14 +1950,16 @@ body.is-ready .loading-screen {
   padding: 2px 0;
   border: 0;
   background: none;
-  color: var(--gold-light);
-  font-family: var(--mono);
-  font-size: 0.75rem;
+  color: var(--cream);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
   cursor: pointer;
 }
 
-.admin-expand:hover .admin-expand__number,
-.admin-expand:focus-visible .admin-expand__number {
+.admin-expand:hover .admin-expand__name,
+.admin-expand:focus-visible .admin-expand__name {
+  color: var(--gold-light);
   text-decoration: underline;
   text-underline-offset: 3px;
 }

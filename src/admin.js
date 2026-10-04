@@ -82,15 +82,15 @@ function renderOrders(orders) {
           </td>
           <td class="admin-cell admin-cell--when">${escapeHtml(formatWhen(order.created_at))}</td>
           <td class="admin-cell">
-            <a class="admin-name" href="${escapeHtml(whatsappOrderLink(order))}" target="_blank" rel="noopener"
-               title="Message ${escapeHtml(order.full_name)} on WhatsApp with this order">${escapeHtml(order.full_name)}</a>
-          </td>
-          <td class="admin-cell">
             <button class="admin-expand" type="button" aria-expanded="false" aria-controls="${detailId}"
                     data-expand="${escapeHtml(order.reference)}">
-              <span class="admin-expand__number">${escapeHtml(formatMobile(order.mobile))}</span>
+              <span class="admin-expand__name">${escapeHtml(order.full_name)}</span>
               <span class="admin-expand__chevron" aria-hidden="true"></span>
             </button>
+          </td>
+          <td class="admin-cell">
+            <a class="admin-number" href="${escapeHtml(whatsappOrderLink(order))}" target="_blank" rel="noopener"
+               title="Message ${escapeHtml(order.full_name)} on WhatsApp about ${escapeHtml(order.reference)}">${escapeHtml(formatMobile(order.mobile))}</a>
           </td>
           <td class="admin-cell admin-cell--items">${escapeHtml(order.item_summary)}</td>
           <td class="admin-cell admin-cell--total">${currency.format(order.total)}</td>
@@ -108,8 +108,8 @@ function renderOrders(orders) {
           <tr>
             <th scope="col">Reference</th>
             <th scope="col">Placed (IST)</th>
-            <th scope="col">Customer <span class="admin-th-hint">click to WhatsApp</span></th>
-            <th scope="col">WhatsApp <span class="admin-th-hint">click to expand</span></th>
+            <th scope="col">Customer <span class="admin-th-hint">click to expand</span></th>
+            <th scope="col">WhatsApp <span class="admin-th-hint">click to message</span></th>
             <th scope="col">Items</th>
             <th scope="col" class="admin-cell--total">Total</th>
           </tr>
@@ -118,8 +118,8 @@ function renderOrders(orders) {
       </table>
     </div>
     <p class="admin-legend">
-      Click a <strong>name</strong> to message that customer on WhatsApp with their reference.
-      Click a <strong>number</strong> to open the full details.
+      Click a <strong>number</strong> to message that customer on WhatsApp with their order already written out.
+      Click a <strong>name</strong> to open the full details.
     </p>`;
 }
 
@@ -141,8 +141,8 @@ function onTableClick(event) {
 }
 
 /* Everything that does not fit in a column: the full address as the customer
-   typed it, the priced line items, their email, and a button that repeats the
-   WhatsApp action from here in case the name above was missed. */
+   typed it, the priced line items, their email, and links that repeat the two
+   actions from the row above, so nothing important hides behind a click. */
 function detailPanel(order) {
   const lines = orderLines(order);
   const items = lines.length

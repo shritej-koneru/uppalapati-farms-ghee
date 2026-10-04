@@ -176,11 +176,19 @@ export function buildWorkbook(columns, rows) {
     .join('');
 
   const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="${widest}" width="18" customWidth="1"/></cols><sheetData>${sheetRows}</sheetData></worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${columnName(widest - 1)}${all.length}"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><cols><col min="1" max="${widest}" width="18" customWidth="1"/></cols><sheetData>${sheetRows}</sheetData></worksheet>`;
 
-  /* Bold on row 1 so the header line is readable when the file is opened. */
+  /* Bold on row 1 so the header line is readable when the file is opened.
+
+     `fills` and `borders` are not optional decoration. CT_Stylesheet is a
+     sequence in which both are required, and every <xf> below points at
+     fillId 0 and borderId 0 — indices into tables that have to exist. Leaving
+     them out produced a file Excel refused: opening it raised the "we found a
+     problem with some content" repair prompt and silently rebuilt the styles on
+     the way in. Index 0 is always "no fill" and "no border"; index 1 is the
+     grey125 that Excel itself writes and expects to find. */
   const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>`;
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/><tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleLight16"/></styleSheet>`;
 
   const entries = [
     [

@@ -26,19 +26,17 @@ export default [
         URLSearchParams: 'readonly',
         HTMLAnchorElement: 'readonly',
         HTMLDialogElement: 'readonly',
-        /* Added with the order book. Seal.js encrypts the export with WebCrypto
-           and admin.js fetches it; without these the lint failed on globals the
-           browser has provided all along. Listed explicitly rather than pulling
-           in the `globals` package, which is only present transitively via
-           eslint and could be hoisted away by a dependency change. */
+        /* Added with the order book, which brought in globals the browser has
+           always provided but the config had not listed: checkout.js mints an
+           idempotency key with crypto.randomUUID and admin.js turns the fetched
+           sheet into a file with Blob and URL.createObjectURL. Listed explicitly
+           rather than pulling in the `globals` package, which is only present
+           transitively via eslint and could be hoisted away by a dependency
+           change. */
         crypto: 'readonly',
         fetch: 'readonly',
         URL: 'readonly',
-        Blob: 'readonly',
-        atob: 'readonly',
-        btoa: 'readonly',
-        TextEncoder: 'readonly',
-        TextDecoder: 'readonly'
+        Blob: 'readonly'
       }
     },
     rules: {
@@ -67,6 +65,27 @@ export default [
         Request: 'readonly',
         Response: 'readonly',
         Headers: 'readonly'
+      }
+    },
+    rules: {
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
+    }
+  },
+  {
+    /* The tooling in scripts/ runs under Node, so it needs the Node globals
+       rather than the browser or Workers ones above. check-xlsx.mjs reads the
+       generated sheet back out of the archive with TextDecoder, which is why
+       that is listed alongside process. */
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        TextEncoder: 'readonly',
+        TextDecoder: 'readonly',
+        URL: 'readonly'
       }
     },
     rules: {

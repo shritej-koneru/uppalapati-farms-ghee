@@ -43,6 +43,15 @@ jobs:
       - name: Install
         run: npm ci
 
+      # Lint, syntax and the order-sheet structure test. This was missing, so
+      # the deploy step would happily publish a workbook that Excel refuses to
+      # open — which is exactly what happened once: styles.xml went out with no
+      # <fills> and no <borders>, and every order sheet since has opened behind
+      # a repair prompt. Nothing here needs a browser or a network, so it runs
+      # in a couple of seconds and gates the publish.
+      - name: Check
+        run: npm run check
+
       # Deliberately the same script as the local deploy rather than a
       # reimplementation of it. If the build or deploy flags ever change, this
       # picks them up from package.json instead of drifting out of sync here.
