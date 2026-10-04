@@ -50,15 +50,22 @@ function saveBlob(bytes, filename, type) {
    A row per order, scannable without scrolling. Two things are clickable and
    they do different jobs, so they are styled differently and labelled as such:
 
-   - the customer's name opens WhatsApp with their order already written out,
-     because "tell them their reference" is the first thing that happens next;
-   - the phone number expands the row underneath, for the address, the priced
-     line items and anything else too wide for a column.
+   - the customer's name expands the row underneath, for the address, the priced
+     line items and anything else too wide for a column;
+   - the phone number opens WhatsApp with their order already written out,
+     because "tell them their reference" is the first thing that happens next.
+
+   The number is the link out of the page and the name stays put, which is also
+   why the number is the one styled in the monospaced face: the two are never
+   mistakable for each other.
 
    Both are real links and buttons, so they work by keyboard and announce
    themselves; neither is a click handler bolted onto a <td>. */
 function renderOrders(orders) {
   if (orders.length === 0) {
+    /* Said here too, not just in the table, or the line above the table keeps
+       whatever it last said — which on a first load is nothing at all. */
+    summary.textContent = 'No orders recorded yet.';
     ordersHost.innerHTML = '<p class="admin-empty">No orders yet.</p>';
     return;
   }
