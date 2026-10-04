@@ -260,7 +260,7 @@ export async function saveOrder(env, order, requestKey, flagged = false) {
     )
     .run();
 
-  return { reference, createdAt };
+  return { reference, createdAt, total: order.total, itemSummary: order.itemSummary };
 }
 
 /* A double-tapped submit button, or a retry over a slow connection, would
@@ -268,12 +268,23 @@ export async function saveOrder(env, order, requestKey, flagged = false) {
    attempt and a repeat of that key returns the order already recorded. */
 export async function findByRequestKey(env, requestKey) {
   if (!requestKey || typeof requestKey !== 'string' || requestKey.length > 64) return null;
+  /* `total` and `item_summary` are selected as well as the reference so that a
+     repeat of a request returns exactly what the first one recorded. The receipt
+     quotes them, and a customer who double-tapped submit must not be handed a
+     second ticket with a figure the owner never agreed to. */
   const row = await env.GHEE_ORDERS.prepare(
-    'SELECT reference, created_at FROM orders WHERE request_key = ?1',
+    'SELECT reference, created_at, total, item_summary FROM orders WHERE request_key = ?1',
   )
     .bind(requestKey)
     .first();
-  return row ? { reference: row.reference, createdAt: row.created_at } : null;
+  return row
+    ? {
+        reference: row.reference,
+        createdAt: row.created_at,
+        total: row.total,
+        itemSummary: row.item_summary,
+      }
+    : null;
 }
 
 export async function listOrders(env) {

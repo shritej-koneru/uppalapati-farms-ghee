@@ -1668,8 +1668,21 @@ body.is-ready .loading-screen {
    reach the number it exists to show is the one thing that would make it worse
    than the banner it replaces. */
 
+/* ---------- The receipt (/checkout) ----------
+
+   A native <dialog> holding a tear-off ticket. Everything a modal has to get right
+   — trapping focus inside it, making the rest of the page inert, Escape to
+   dismiss, stacking above the header — is behaviour the browser already implements
+   correctly, and every one of those is something hand-rolled modals get subtly
+   wrong. Two consequences are deliberate: a backdrop click does not close it, and
+   focus lands on the card rather than on a button.
+
+   The card is light where the shop is dark. Not decoration: it is going to be
+   photographed off a phone screen, read out over a call and printed, and near-black
+   text on cream survives all three where cream on near-black does not. */
+
 .receipt {
-  width: min(30rem, calc(100vw - 2rem));
+  width: min(27rem, calc(100vw - 3.5rem));
   max-height: calc(100svh - 2rem);
   padding: 0;
   border: 0;
@@ -1683,117 +1696,347 @@ body.is-ready .loading-screen {
   backdrop-filter: blur(3px);
 }
 
-.receipt__card {
+/* A column, so the card takes what it needs and the buttons keep their place.
+
+   Without this the card scrolls but the dialog does not, and on a short phone the
+   Print and Close buttons end up below the fold with nothing to scroll them into
+   view — which would make the one card the customer is told to keep unreachable
+   on exactly the devices most likely to photograph it.
+
+   Scoped to `[open]` deliberately: setting `display` on `.receipt` itself would
+   beat the user-agent's `dialog:not([open]) { display: none }` and leave the
+   dialog sitting on the page after it was closed. */
+.receipt[open] {
+  display: flex;
+  flex-direction: column;
   max-height: calc(100svh - 2rem);
-  padding: clamp(22px, 5vw, 34px);
+}
+
+/* ---------- The ticket ----------
+
+   Sized and spaced to match the design this replaced: a 16px radius, 2rem of
+   padding, a 1.5rem gap between the sections, and the two 2rem circles that bite
+   into the edges at the halfway mark. */
+
+.ticket {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
+  border-radius: 1rem;
   background: var(--paper);
   box-shadow: 0 40px 90px rgba(0, 0, 0, 0.55);
+  font-family: var(--sans);
+  text-align: center;
+
+  /* Darker than the site's `--muted`, and only here. On the dark shop `--muted`
+     is comfortably legible, but on this light card it works out at 3.5:1, which
+     is under the 4.5:1 WCAG AA asks of body text — and the design's own
+     `text-muted-foreground` is worse still. This is 4.8:1, and the difference
+     between it and `--muted` is invisible except that it survives being read off
+     a phone screen in daylight, which is where this card gets read. */
+  --ticket-muted: #5f675e;
+}
+
+/* The scrolling area, kept separate from the notches above for the reason given in
+   the markup. Capping the height here rather than on the card is what lets the
+   notches sit at the midpoint of what is *visible* rather than of the whole
+   order. */
+.ticket__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 2rem;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-.receipt__header {
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(17, 21, 16, 0.16);
+/* The notches. Painted in the backdrop's colour so they read as holes rather than
+   as two circles stuck on the edge — which is the whole trick, and only works
+   because the dialog behind the card is transparent and dark. */
+.ticket__notch {
+  position: absolute;
+  top: 50%;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #0a0d0b;
+  transform: translateY(-50%);
 }
 
-.receipt__logo {
-  display: block;
-  width: 34px;
-  height: 34px;
+.ticket__notch--start {
+  left: -1rem;
 }
 
-.receipt__farm {
-  margin: 12px 0 0;
-  font-family: var(--mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
+.ticket__notch--end {
+  right: -1rem;
 }
 
-.receipt h2 {
-  margin: 14px 0 0;
-  font-family: var(--serif);
-  font-size: clamp(2rem, 8vw, 2.6rem);
+.ticket__top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ticket__badge {
+  display: flex;
+  padding: 0.75rem;
+  border-radius: 50%;
+  background: rgba(201, 148, 55, 0.14);
+  color: var(--gold-deep);
+  animation: ticket-pop 520ms var(--ease-out) 300ms backwards;
+}
+
+.ticket__check {
+  width: 2.5rem;
+  height: 2.5rem;
+  animation: ticket-pop 520ms var(--ease-out) 500ms backwards;
+}
+
+.ticket__title {
+  margin: 1rem 0 0;
+  font-family: var(--sans);
+  font-size: 1.5rem;
   font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 
-.receipt__lead {
-  margin: 10px 0 0;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: var(--muted);
+.ticket__sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--ticket-muted);
 }
 
-/* The order number and the number we will message are the two things on this
-   card the customer cannot get back later, so both are given their own ruled
-   panel and set in mono at a size that is legible in a screenshot. The reference
-   is the larger of the two because it is the one they have to read back to us. */
+.ticket__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
 
-.receipt__reference,
-.receipt__number {
+/* The perforation rules. Dashed rather than solid so they read as "tear here"
+   and not as a border the printer would reproduce as a hairline. */
+.ticket__rule {
+  width: 100%;
+  border-top: 2px dashed rgba(17, 21, 16, 0.22);
+}
+
+.ticket__pair {
   display: grid;
-  gap: 4px;
-  margin: 18px 0 0;
-  padding: 16px 18px;
-  border-left: 2px solid var(--gold);
-  background: rgba(201, 148, 55, 0.09);
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  text-align: left;
 }
 
-.receipt__reference span,
-.receipt__number span {
+.ticket__pair-end {
+  text-align: right;
+}
+
+.ticket__label {
+  margin: 0;
   font-family: var(--mono);
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ticket-muted);
 }
 
-.receipt__reference strong {
-  font-family: var(--mono);
-  font-size: clamp(1.6rem, 7vw, 2.1rem);
+.ticket__value {
+  margin: 0.25rem 0 0;
+  font-family: var(--sans);
+  font-size: 0.9375rem;
   font-weight: 500;
-  letter-spacing: 0.04em;
-  line-height: 1.1;
+  line-height: 1.4;
   color: var(--ink);
 }
 
-.receipt__number strong {
+.ticket__value--mono {
   font-family: var(--mono);
-  font-size: clamp(1.05rem, 4.4vw, 1.25rem);
   font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--ink);
 }
 
-.receipt__note {
-  margin: 18px 0 0;
-  font-size: 0.85rem;
-  line-height: 1.65;
-  color: var(--muted);
+/* The order number is the one value the customer reads back to us and the one we
+   match against a row, so it is the largest thing in the left-hand column even
+   though the design sets it at body size. */
+.ticket__value--mono {
+  font-size: clamp(1rem, 4.2vw, 1.125rem);
 }
+
+.ticket__amount {
+  margin: 0.25rem 0 0;
+  font-family: var(--sans);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+/* The payment row. Where the design had a card network mark, a cardholder name
+   and the last four digits, there is the WhatsApp number — because this shop takes
+   no payment, and those three would each be a lie. */
+.ticket__pay {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background: rgba(17, 21, 16, 0.05);
+  text-align: left;
+}
+
+.ticket__pay-icon {
+  flex: 0 0 auto;
+  width: 2.125rem;
+  height: 2.125rem;
+  color: #1da851;
+}
+
+.ticket__pay-name {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.ticket__pay-number {
+  margin: 0.2rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  letter-spacing: 0.06em;
+  color: var(--ticket-muted);
+}
+
+.ticket__barcode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0 0;
+}
+
+.ticket__barcode-svg {
+  color: var(--ink);
+}
+
+.ticket__barcode-svg svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.ticket__barcode-text {
+  margin: 0.5rem 0 0;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: var(--ticket-muted);
+}
+
+/* The card arriving. A fade and a slight zoom, matching the design's
+   `animate-in fade-in-0 zoom-in-95 duration-500`, written out rather than pulling
+   in a keyframe library for two animations. */
+.receipt[open] .ticket {
+  animation: ticket-arrive 500ms var(--ease-out);
+}
+
+@keyframes ticket-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes ticket-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* ---------- Confetti ----------
+
+   A short burst behind the card when the order is recorded, then gone. Behind the
+   card rather than over it, and `pointer-events: none` so it can never intercept
+   the click on Print or Close.
+
+   One set of pieces is built once and removed after it has fallen, rather than
+   being re-randomised on every frame: the original drew a fresh `Math.random()`
+   per piece per render, which on a re-render slid every piece to a new place
+   mid-fall. */
+
+.receipt__confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.receipt__confetti i {
+  position: absolute;
+  width: 0.5rem;
+  height: 1rem;
+  animation-name: ticket-fall;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes ticket-fall {
+  from {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Someone who has asked their system for less motion gets the receipt and none of
+   the animation: the card still arrives instantly, and nothing falls. */
+@media (prefers-reduced-motion: reduce) {
+  .receipt[open] .ticket,
+  .ticket__badge,
+  .ticket__check {
+    animation: none;
+  }
+
+  .receipt__confetti {
+    display: none;
+  }
+}
+
+/* ---------- The buttons ----------
+
+   Below the card rather than inside it, so the card is the ticket and these are
+   the dialog's own controls. Print is the primary button and Close sits beside it.
+   A 48px target is the minimum that is comfortable on a phone, and the two are
+   told apart by fill rather than by colour alone. */
 
 .receipt__actions {
   display: flex;
+  flex: 0 0 auto;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 24px;
+  margin-top: 1.5rem;
 }
 
-/* Print is the primary button and Close is the one beside it. A 48px target is
-   the minimum that is comfortable on a phone, and the two are told apart by
-   fill rather than by colour alone. */
 .receipt__button {
   flex: 1 1 auto;
   min-height: 48px;
   padding: 0 22px;
-  border: 1px solid rgba(17, 21, 16, 0.28);
+  border: 1px solid rgba(246, 241, 231, 0.28);
   background: transparent;
-  color: var(--ink);
+  color: var(--cream);
   font-family: var(--mono);
   font-size: 0.62rem;
   letter-spacing: 0.1em;
@@ -1803,9 +2046,9 @@ body.is-ready .loading-screen {
 }
 
 .receipt__button--print {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: var(--paper);
+  border-color: var(--cream);
+  background: var(--cream);
+  color: var(--night);
 }
 
 .receipt__button:hover,
@@ -1815,13 +2058,16 @@ body.is-ready .loading-screen {
 
 .receipt__button--print:hover,
 .receipt__button--print:focus-visible {
-  background: #000;
+  background: #fff;
 }
 
 .receipt__hint {
-  margin: 14px 0 0;
-  font-size: 0.72rem;
-  color: var(--muted);
+  flex: 0 0 auto;
+  margin: 0.875rem 0 0;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  text-align: center;
+  color: rgba(246, 241, 231, 0.55);
 }
 
 /* Printing.
@@ -1831,9 +2077,14 @@ body.is-ready .loading-screen {
 
    The dialog is taken out of the top layer and laid back out as a static block,
    because a modal dialog is `position: fixed` — which in print means it lands on
-   the first page regardless of where the reader is, and can be clipped by the
-   page margin. `margin: 0` on the dialog removes the default centring the
-   `open` state applies. */
+   the first page regardless of where the reader is, and can be clipped by the page
+   margin. `margin: 0` removes the centring the `open` state applies.
+
+   Three things are dropped, each for a different reason. The buttons and the hint
+   are instructions for a screen. The confetti is an animation that will not have
+   finished. The notches are painted in the backdrop's colour to look like holes
+   through the card — on white paper there is no backdrop to show, so they would
+   print as two dark discs stuck to the edge. */
 
 @media print {
   body > *:not(.receipt) {
@@ -1853,19 +2104,23 @@ body.is-ready .loading-screen {
     overflow: visible;
   }
 
-  .receipt__card {
-    max-height: none;
-    padding: 0;
+  .ticket {
+    display: block;
+    border-radius: 0;
     background: none;
     box-shadow: none;
+  }
+
+  .ticket__scroll {
+    max-height: none;
+    padding: 0;
     overflow: visible;
   }
 
-  /* The buttons and the hint are instructions for a screen, not part of the
-     order. The order number, the number to message and the payment note are all
-     still there. */
+  .receipt__confetti,
   .receipt__actions,
-  .receipt__hint {
+  .receipt__hint,
+  .ticket__notch {
     display: none;
   }
 }

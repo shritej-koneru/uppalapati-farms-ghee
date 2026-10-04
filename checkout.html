@@ -77,58 +77,111 @@
     </main>
 
     <!-- The receipt. Opened as a modal the moment an order is recorded, because
-         the two things on it — our WhatsApp number and the order number — are the
-         two things the customer cannot get back once the page is closed, and a
-         banner at the bottom of a scrolled form is where that information goes
-         to be missed.
+         the things on it — our WhatsApp number, the order number and the amount —
+         are the things the customer cannot get back once the page is closed, and a
+         banner at the bottom of a scrolled form is where that information goes to
+         be missed.
 
-         Printed as-is: the card is already light with dark text, so the print
-         rules in styles.css only have to hide the page behind it rather than
-         re-colour it. -->
+         A ticket rather than a plain panel: the tear-off notches, the dashed
+         perforation rules and the barcode make it read as the stub you keep, and
+         make the one number that matters scannable off a printed page rather than
+         only readable.
+
+         Printed as-is: the card is light with dark text, so the print rules in
+         styles.css only hide the page behind it and the two notches, which show
+         the backdrop through the card and mean nothing on paper. -->
     <dialog class="receipt" data-checkout-confirmation aria-labelledby="receipt-title" tabindex="-1">
-      <article class="receipt__card">
-        <header class="receipt__header">
-          <img class="receipt__logo" src="/media/logo.png" alt="" width="34" height="34" decoding="async" />
-          <p class="receipt__farm">Uppalapati Farms</p>
-          <h2 id="receipt-title">Order received.</h2>
-          <p class="receipt__lead">Thank you. Your order is recorded and we will be in touch shortly.</p>
-        </header>
+      <!-- Behind the card, not inside it: the notches have to look like bites out
+           of the card's edge, which only works if something is drawn behind them.
+           Removed again once the animation is over, so it is not sitting there for
+           the six seconds the customer might spend reading the card. -->
+      <div class="receipt__confetti" data-receipt-confetti aria-hidden="true"></div>
 
-        <!-- The order number is the largest thing on the card. It is the one
-             value the customer has to read back to us and the one we have to
-             match to a row in the order book, so it is set in mono at a size
-             that survives being photographed off someone else's phone. -->
-        <p class="receipt__reference">
-          <span>Order number</span>
-          <strong data-confirmation-reference>—</strong>
-        </p>
+      <article class="ticket">
+        <!-- Siblings of the scrolling area, not children of it. Inside a scroll
+             container these two circles would be 16px wider than the card on each
+             side, which makes the card scroll sideways — and a sideways-scrolling
+             receipt is not a thing anyone wants. Out here they simply paint past
+             the edge, which is the effect. -->
+        <span class="ticket__notch ticket__notch--start" aria-hidden="true"></span>
+        <span class="ticket__notch ticket__notch--end" aria-hidden="true"></span>
 
-        <!-- Stated as a number rather than a link to a contact card, because the
-             customer has to be able to check it against their own phone before
-             they trust a message that claims to be from us. -->
-        <p class="receipt__number">
-          <span>We will message you on WhatsApp at</span>
-          <strong data-confirmation-number>—</strong>
-        </p>
+        <div class="ticket__scroll">
+          <header class="ticket__top">
+            <span class="ticket__badge" aria-hidden="true">
+              <svg class="ticket__check" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </span>
+            <h1 class="ticket__title" id="receipt-title">Thank you!</h1>
+            <p class="ticket__sub">Your order is recorded. Nothing has been charged.</p>
+          </header>
 
-        <p class="receipt__note">Nothing has been charged. We will confirm the order with you on that WhatsApp chat, agree the delivery day, and take payment there.</p>
+          <div class="ticket__body">
+            <div class="ticket__rule" role="presentation"></div>
 
-        <div class="receipt__actions">
-          <!-- `window.print()` rather than a generated file: the browser's own
-               print dialog is where "Save as PDF" already lives, on every
-               platform, and it lets the customer print to paper just as easily.
-               A button that silently produced a download would be less capable,
-               not more. -->
-          <button type="button" class="receipt__button receipt__button--print" data-confirmation-print>
-            Print / save as PDF
-          </button>
-          <button type="button" class="receipt__button" data-confirmation-close>
-            Close
-          </button>
+            <div class="ticket__pair">
+              <div>
+                <p class="ticket__label">Order number</p>
+                <p class="ticket__value ticket__value--mono" data-confirmation-reference>—</p>
+              </div>
+              <div class="ticket__pair-end">
+                <p class="ticket__label">Amount</p>
+                <p class="ticket__amount" data-confirmation-amount>—</p>
+              </div>
+            </div>
+
+            <div>
+              <p class="ticket__label">Placed</p>
+              <p class="ticket__value" data-confirmation-placed>—</p>
+            </div>
+
+            <!-- Where the money changes hands. A card reader, a card number and a
+                 last-four are what this row carried in the design it came from; none
+                 of them would be true here, because this shop takes no payment and a
+                 receipt showing a card number would tell the customer their card had
+                 been read. It is the WhatsApp number instead — the one thing the
+                 customer cannot check later and the one we message them on. -->
+            <div class="ticket__pay">
+              <svg class="ticket__pay-icon" xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20.5 11.6a8.4 8.4 0 0 1-8.5 8.4 8.7 8.7 0 0 1-3.7-.8L3.6 20.8l1.7-4.5A8.3 8.3 0 0 1 4.3 11.6a8.4 8.4 0 0 1 8.5-8.4 8.4 8.4 0 0 1 7.7 8.4Z" />
+                <path d="M9.1 8.4c.3-.1.6 0 .8.4l.7 1.6c.1.3.1.5-.1.8l-.5.6c-.2.2-.2.4-.1.6a6.6 6.6 0 0 0 3 2.9c.3.1.5.1.7-.1l.6-.7c.2-.2.4-.2.7-.1l1.6.8c.3.2.5.4.4.7a2.6 2.6 0 0 1-2.4 1.6 9 9 0 0 1-5.3-4.4 2.4 2.4 0 0 1 1.5-3.2Z" />
+              </svg>
+              <div>
+                <p class="ticket__pay-name">Pay on WhatsApp</p>
+                <p class="ticket__pay-number" data-confirmation-number>—</p>
+              </div>
+            </div>
+
+            <div class="ticket__rule" role="presentation"></div>
+
+            <div class="ticket__barcode">
+              <!-- Real Code 128 of the order number, drawn by src/barcode.js. Not a
+                   decoration: a scanner on a printed or screenshotted receipt reads
+                   the same reference the owner will match against the order book. -->
+              <div class="ticket__barcode-svg" data-confirmation-barcode></div>
+              <p class="ticket__barcode-text" data-confirmation-barcode-text>—</p>
+            </div>
+          </div>
         </div>
-
-        <p class="receipt__hint">Keeping this on your phone? A screenshot works just as well.</p>
       </article>
+
+      <div class="receipt__actions">
+        <!-- `window.print()` rather than a generated file: the browser's own
+             print dialog is where "Save as PDF" already lives, on every
+             platform, and it lets the customer print to paper just as easily.
+             A button that silently produced a download would be less capable,
+             not more. -->
+        <button type="button" class="receipt__button receipt__button--print" data-confirmation-print>
+          Print / save as PDF
+        </button>
+        <button type="button" class="receipt__button" data-confirmation-close>
+          Close
+        </button>
+      </div>
+
+      <p class="receipt__hint">Keeping this on your phone? A screenshot works just as well.</p>
     </dialog>
 
     <script type="module" src="/src/checkout.js"></script>

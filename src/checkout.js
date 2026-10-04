@@ -1,5 +1,6 @@
 import { products, currency, readCart, writeCart, productImage, cartHasPreorder, cartStorageKey, PREORDER_NOTICE_DAYS } from './catalogue.js';
 import { earliestDeliveryDate, latestDeliveryDate } from './pricing.js';
+import { barcodeSvg } from './barcode.js';
 
 const checkoutDetails = document.querySelector('[data-checkout-details]');
 const checkoutItems = document.querySelector('[data-checkout-items]');
@@ -142,7 +143,17 @@ checkoutForm.addEventListener('submit', async (event) => {
       return;
     }
 
-    showConfirmation(payload.mobile, result.reference);
+    /* The receipt quotes what the server recorded — including the amount, which
+       is why the response carries it rather than the page recomputing a figure the
+       order book may disagree with. On a repeat of a request already stored this
+       is the original order, so a double-tap cannot hand out a second ticket with
+       a different total. */
+    showConfirmation({
+      mobile: payload.mobile,
+      reference: result.reference,
+      total: result.total,
+      createdAt: result.createdAt,
+    });
   } catch {
     /* Network failure, or the shop is unreachable. The order was NOT recorded,
        so the confirmation is deliberately withheld — telling a customer their
@@ -163,10 +174,86 @@ checkoutForm.addEventListener('submit', async (event) => {
 
 const receiptPrint = document.querySelector('[data-confirmation-print]');
 const receiptClose = document.querySelector('[data-confirmation-close]');
+const receiptConfetti = document.querySelector('[data-receipt-confetti]');
 
-function showConfirmation(mobile, reference) {
+/* The date and time the order was placed, in the farm's own timezone.
+
+   Shifted rather than formatted with a locale: the browser may carry a different
+   set of ICU data from the server, and a locale-formatted date and time is exactly
+   the kind of thing that comes out as "04/10/2026, 4:41 pm" on one machine and
+   "10/4/2026, 16:41" on the next. Twelve-hour clock dropped as well — a receipt
+   read out over the phone is easier without it. The same +5:30 the server numbers
+   the reference by, so the date here and the day in the reference cannot disagree.
+
+   Duplicated from functions/_lib/orders.js on purpose. This one is for the
+   customer's eye and that one is for the order book; importing a Worker module
+   into a page that also has to work from a plain static build is not worth the
+   coupling, and both are a single named constant either way. */
+const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
+
+function formatPlacedAt(iso) {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return '';
+  const ist = new Date(parsed.getTime() + IST_OFFSET_MS);
+  const day = String(ist.getUTCDate()).padStart(2, '0');
+  const month = String(ist.getUTCMonth() + 1).padStart(2, '0');
+  const hours = String(ist.getUTCHours()).padStart(2, '0');
+  const minutes = String(ist.getUTCMinutes()).padStart(2, '0');
+  return `${day}/${month}/${ist.getUTCFullYear()} • ${hours}:${minutes}`;
+}
+
+/* One short burst of confetti, then nothing.
+
+   The pieces are built once and removed when they have fallen, rather than being
+   re-randomised per frame — the component this came from called `Math.random()`
+   inside its render, which slid every piece to a new place whenever anything
+   re-rendered, and rebuilt all hundred on every state change. */
+const CONFETTI_COLOURS = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#8b5cf6', '#f97316'];
+const CONFETTI_COUNT = 100;
+
+function celebrate() {
+  if (!receiptConfetti) return;
+  /* The CSS drops this element entirely under `prefers-reduced-motion`, so there
+     is nothing to build. */
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+  const pieces = document.createDocumentFragment();
+  let latest = 0;
+
+  for (let i = 0; i < CONFETTI_COUNT; i += 1) {
+    const piece = document.createElement('i');
+    const duration = 2.5 + Math.random() * 2.5;
+    const delay = Math.random() * 2;
+    piece.style.left = `${Math.random() * 100}%`;
+    piece.style.top = `${-20 + Math.random() * 10}%`;
+    piece.style.backgroundColor = CONFETTI_COLOURS[i % CONFETTI_COLOURS.length];
+    piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+    piece.style.animationDuration = `${duration}s`;
+    piece.style.animationDelay = `${delay}s`;
+    pieces.appendChild(piece);
+    latest = Math.max(latest, delay + duration);
+  }
+
+  receiptConfetti.appendChild(pieces);
+  window.setTimeout(() => receiptConfetti.replaceChildren(), latest * 1000 + 250);
+}
+
+function showConfirmation({ mobile, reference, total, createdAt }) {
+  const safeReference = reference || '—';
+
   document.querySelector('[data-confirmation-number]').textContent = formatMobile(mobile);
-  document.querySelector('[data-confirmation-reference]').textContent = reference || '—';
+  document.querySelector('[data-confirmation-reference]').textContent = safeReference;
+  document.querySelector('[data-confirmation-amount]').textContent =
+    Number.isFinite(Number(total)) ? currency.format(Number(total)) : '—';
+  document.querySelector('[data-confirmation-placed]').textContent =
+    formatPlacedAt(createdAt) || '—';
+
+  /* The barcode is drawn from the same string printed beside it, never from
+     anything the page already had. If the value cannot be encoded the container
+     is emptied rather than left holding a previous order's bars. */
+  document.querySelector('[data-confirmation-barcode-text]').textContent = safeReference;
+  document.querySelector('[data-confirmation-barcode]').innerHTML = barcodeSvg(safeReference);
+
   checkoutForm.reset();
   /* Emptied only once the order is confirmed recorded. A customer who returns to
      the shop after a success would otherwise still be holding the jars they just
@@ -187,6 +274,8 @@ function showConfirmation(mobile, reference) {
        lost. */
     checkoutConfirmation.setAttribute('open', '');
   }
+
+  celebrate();
 }
 
 receiptPrint?.addEventListener('click', () => window.print());

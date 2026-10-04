@@ -38,7 +38,9 @@ src/
   product.js        Product detail page gallery.
   contact.js        Contact form.
   checkout.js       Checkout page, and the modal receipt shown once an order is
-                    recorded — see [The receipt](#the-receipt).
+                    recorded - see [The receipt](#the-receipt).
+  barcode.js        Code 128 encoder for the receipt's barcode. A real standard,
+                    not decoration - see [The receipt](#the-receipt).
   jar3d.js          three.js scene for the GLB jar.
   assets/
     logo-source.png Original artwork, 1254x1254. Source only — never deployed.
@@ -98,7 +100,8 @@ npm run typecheck node --check over every module in src/ and functions/
 npm run check:xlsx Check the order sheet's structure, shape and status fills
 npm run check:reference Check the order reference format and its date handling
 npm run check:order Check what the checkout will and will not accept
-npm run check     lint + typecheck + all three checks
+npm run check:barcode Check the receipt barcode encodes and decodes the reference
+npm run check     lint + typecheck + all four checks
 npm run deploy    build, then publish dist/ to Cloudflare Pages
 ```
 
@@ -123,6 +126,20 @@ path that have no database behind them: which day and which number a new order
 gets, and which customer input is accepted. Both take the clock as an argument so
 they can be run at any moment — a check that only passes at 10am is a check that
 is not run.
+
+`check:barcode` is the one that earns its own place, because the barcode it guards
+is the only part of the shop that can look right and still be wrong. The component
+it replaced drew its bars from `Math.sin(seed + index)` — a seeded random number
+generator picking a width — which looks exactly like a barcode and decodes to
+nothing. No test that checks the bars are the right colour would ever have caught
+that, so this one encodes the reference, reads the module widths back with a
+decoder in the opposite direction, and insists the reference comes out again. The
+encoder and the decoder are the same file and could agree on something wrong, so
+both are pinned to the standard's own published worked example instead: "Wikipedia"
+in set B, whose width sequence and modulo-103 checksum are written out in full in
+the check. It also flips each module in turn and asserts no single-bit corruption
+decodes to the same order — a barcode that silently misreads as a different order
+number is worse than one that fails outright.
 
 For the one thing they cannot do, there is a check that uses the real thing:
 
@@ -164,18 +181,23 @@ worse than one junk row the owner can sort out.
 
 ### The receipt
 
-The moment an order is recorded, `/checkout` opens a modal **receipt** carrying
-three things and nothing else: the order number, the WhatsApp number we will
-message, and the fact that payment is settled on that WhatsApp chat. There is a
-**Print / save as PDF** button and a **Close** button, and the card says outright
-that a screenshot works just as well.
+The moment an order is recorded, `/checkout` opens a modal **ticket** carrying the
+order number, the amount to pay, the time it was placed, the WhatsApp number we
+will message, a barcode of that order number, and the fact that nothing has been
+charged. There is a **Print / save as PDF** button and a **Close** button, and the
+card says outright that a screenshot works just as well.
 
-It is a modal because those three things are the ones the customer cannot get back
-once the page is closed, and a banner at the bottom of a scrolled form is exactly
-where that information goes to be missed. It is **light where the shop is dark**,
-which is not decoration: the card is going to be photographed off a phone screen
-and read out over a call, and near-black text on cream survives both a camera and a
-print far better than cream text on near-black.
+It is a tear-off stub — notched edges, dashed perforation rules, a barcode — because
+that is what a customer is going to treat it as: the slip they keep and the stub
+they read our number off. The notches and the dashed rules are not decoration
+either, they say *this is detachable* in a way a plain rounded panel does not.
+
+It is a modal because those things are what the customer cannot get back once the
+page is closed, and a banner at the bottom of a scrolled form is exactly where
+that information goes to be missed. It is **light where the shop is dark**, which is
+not decoration: the card is going to be photographed off a phone screen and read out
+over a call, and near-black text on cream survives both a camera and a print far
+better than cream text on near-black.
 
 A native `<dialog>` rather than a div with a class. Everything a modal has to get
 right — trapping focus inside it, making the rest of the page inert, Escape to
@@ -189,18 +211,78 @@ wrong. Two consequences are deliberate:
 - **Focus lands on the card rather than on the first button**, so the order number
   is what a screen reader announces, and Tab reaches the buttons next.
 
+The dialog is a flex column, so the card scrolls and the buttons do not move. On a
+360x640 phone the ticket is taller than the screen; without this the Print and
+Close buttons would fall below the fold with nothing to scroll them into view, which
+would make the one card the customer is told to keep unreachable on exactly the
+devices most likely to photograph it. The notches are siblings of the scrolling
+area rather than children of it — inside a scroll container they would be 16px
+wider than the card on each side, and the ticket would scroll sideways.
+
 **Print / save as PDF** calls `window.print()`. The browser's own print dialog is
 where "Save as PDF" already lives, on every platform, and it lets the customer
 print to paper just as easily — a button that silently produced a download would
 be less capable, not more. The `@media print` block hides everything that is not
 the card and takes it out of the top layer, because a modal is `position: fixed`
-and in print that lands it on page one regardless of where the reader is. The
-buttons and the screenshot hint are hidden: they are instructions for a screen,
-not part of the order.
+and in print that lands it on page one regardless of where the reader is. Three
+things are dropped, each for a different reason: the buttons and the screenshot
+hint are instructions for a screen; the confetti is an animation that will not have
+finished; and the notches are painted in the backdrop's colour to look like holes
+through the card, so on white paper they would print as two dark discs stuck to
+the edge.
 
 The cart is emptied and the checkout is re-rendered behind the modal, so closing it
 leaves an empty cart and focus on the link back to the shop — not on a submit
 button that no longer exists.
+
+#### What the ticket does not say
+
+The design this ticket came from was a **payment** receipt: card network mark,
+cardholder name, the last four digits of the card, an amount in dollars. Every one
+of those would be a lie here, because this shop takes no payment — the money
+changes hands on a WhatsApp chat after we have agreed the order with the customer.
+A card number printed on a receipt tells the customer their card was read, and it
+would be read as a charge that had not happened. So the payment row is the WhatsApp
+number, in the same slot, because that is the real next step; the amount is the
+recorded total in rupees; and the sub-line under "Thank you!" says plainly that
+nothing has been charged.
+
+The amount is quoted from **what the server recorded**, not recomputed by the page.
+`POST /api/orders` returns the stored `total` and `item_summary` alongside the
+reference — including on the duplicate path, so a customer who double-taps submit
+gets the same figures twice rather than a second ticket with a different number.
+
+#### The barcode
+
+Real **Code 128**, encoding the order reference, so a scanner on a printed or
+screenshotted receipt reads back the same number the owner will match against the
+order book. The component it replaced drew its bars from a seeded random number
+generator, which looks exactly like a barcode and decodes to nothing — decoration
+posing as data. `src/barcode.js` carries the standard's 107 width patterns, the
+modulo-103 checksum, and set B's `codePoint - 32` mapping. It refuses anything
+outside printable ASCII rather than drawing the wrong character.
+
+Set B alone, not the set C digit-packing optimisation. Set C would make a
+ten-character reference about a third shorter, which on a card that already fits is
+worth nothing, and it costs a second path through the checksum plus two switch codes
+to get wrong. Correctness is the entire point of having a barcode.
+
+It is generated as an SVG string and injected, `aria-hidden`, because the reference
+is already set in text directly above it. Bars are never thinner than one device
+pixel — a sub-pixel bar can be dropped entirely by the rasteriser, which quietly
+turns a scannable barcode into a stripey one that only looks like it works — and
+both ends carry the ten-module quiet zone a scanner needs to find the first bar.
+`npm run check:barcode` round-trips it and pins it to the standard; see
+[Commands](#commands).
+
+#### The confetti
+
+A hundred pieces behind the card for about seven seconds, then removed. `pointer-events:
+none`, so it can never intercept the click on Print. Built once into a fragment and
+emptied on a timer rather than re-randomised per frame, which is what the original
+did — it called `Math.random()` inside its render, so every re-render slid all
+hundred pieces to a new place mid-fall. Nothing is built at all under
+`prefers-reduced-motion`, and the card's own arrival animation is off there too.
 
 ### The order reference
 

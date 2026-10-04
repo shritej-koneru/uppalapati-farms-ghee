@@ -8,10 +8,11 @@
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "lint": "eslint src functions scripts",
-    "check": "npm run lint && npm run typecheck && npm run check:xlsx && npm run check:reference && npm run check:order",
+    "check": "npm run lint && npm run typecheck && npm run check:xlsx && npm run check:reference && npm run check:order && npm run check:barcode",
     "check:xlsx": "node scripts/check-xlsx.mjs",
     "check:reference": "node scripts/check-reference.mjs",
     "check:order": "node scripts/check-order.mjs",
+    "check:barcode": "node scripts/check-barcode.mjs",
     "deploy": "npm run build && wrangler pages deploy --branch=main",
     "typecheck": "node scripts/check-syntax.mjs"
   },
