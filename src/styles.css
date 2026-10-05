@@ -3355,65 +3355,263 @@ body.page-body {
   color: var(--ink);
 }
 
-/* ---------- The herd gallery (/about.html) ---------- */
+/* ---------- The herd carousel (the farm page hero) ---------- */
 
-/* The four photographs arrived in three different shapes - a 4:3 landscape, a
-   square and one tall phone portrait - so the frame fixes the ratio and the
-   image covers it. 4:5 is the ratio the product photography on the shop page
-   already uses, so the two read as the same kind of picture. */
-.farm-gallery {
+/* The hero on the other four pages is one column, and the heading's own
+   max-width - 16ch, measured against its own font size and not against this
+   container - is what sets the measure. That is exactly what makes splitting it
+   safe: the text cannot rewrap as long as the text column stays wider than the
+   heading is, so the column is given all the slack and the carousel is given a
+   fixed clamp instead. A 1fr carousel would grow without limit on a wide
+   monitor, and since the frame is 4:5 that would make the hero taller and
+   taller; the clamp means the hero reaches its final height by about a 1280px
+   laptop and stops there. */
+.page-hero--split {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(20px, 2.6vw, 34px);
-  margin: clamp(40px, 5vh, 64px) 0 0;
+  grid-template-columns: minmax(0, 1fr) clamp(240px, 24vw, 340px);
+  gap: clamp(32px, 5vw, 76px);
+  align-items: center;
 }
 
-.farm-gallery__item {
+.page-hero__text {
+  min-width: 0;
+}
+
+.herd-carousel {
   display: grid;
   gap: 14px;
-  margin: 0;
+  min-width: 0;
 }
 
-.farm-gallery__frame {
+/* Before the script marks the carousel ready this is an ordinary scrollable
+   strip of all four photographs, snap-aligned. That is the fallback worth
+   having: the cows are the point, and without JavaScript none of them go
+   missing. */
+.herd-carousel__viewport {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  border: 1px solid var(--line);
+  background: var(--night-soft);
+  /* Load-bearing, and not obvious. A press-and-drag across a photograph with
+     text selection left on selects the caption printed over it, and the NEXT
+     press that lands inside that selection starts a native drag-and-drop of the
+     selected text. Chromium answers that with pointercancel, so the second and
+     every later swipe with a mouse simply stopped moving the carousel, for the
+     rest of the session. Measured rather than guessed: six consecutive 200px
+     drags gave three that worked and three cancelled with this off, and six
+     that worked with it on. */
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.herd-carousel__track {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transition: transform 520ms var(--ease-out);
+}
+
+.herd-carousel__slide {
   position: relative;
+  flex: 0 0 100%;
   overflow: hidden;
   aspect-ratio: 4 / 5;
+  scroll-snap-align: center;
   background: var(--night-soft);
-  border: 1px solid rgba(17, 21, 16, 0.12);
 }
 
-.farm-gallery__frame img {
+.herd-carousel__slide img {
   display: block;
   width: 100%;
   height: 100%;
-  /* cover, not contain: every frame is one shape and no photograph is, so the
-     odd one out is cropped rather than letterboxed with dead bands. */
+  /* cover, not contain: the four frames are all one shape and no photograph is,
+     so the odd one out is cropped rather than letterboxed with dead bands. */
   object-fit: cover;
   object-position: center;
+  /* Never the drag target itself, so a gesture on a photograph cannot end up
+     grabbing the image rather than the carousel. */
+  pointer-events: none;
 }
 
-.farm-gallery__caption {
+.herd-carousel__caption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: grid;
-  gap: 4px;
+  gap: 3px;
+  padding: 44px 18px 16px;
+  /* The scrim is what carries the contrast, not the photograph. These are farm
+     photos whose exposure we do not control, so the text has to be readable
+     over any of them - including the one that turns out to be a white cow in
+     midday sun. */
+  background: linear-gradient(
+    to top,
+    rgba(8, 11, 9, 0.92),
+    rgba(8, 11, 9, 0.6) 45%,
+    rgba(8, 11, 9, 0)
+  );
 }
 
-.farm-gallery__name {
-  margin: 0;
-  color: var(--ink);
+.herd-carousel__name {
+  color: var(--cream);
   font-family: var(--serif);
-  font-size: clamp(1.16rem, 1.6vw, 1.42rem);
+  font-size: clamp(1.1rem, 1.5vw, 1.34rem);
   font-weight: 600;
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
-.farm-gallery__note {
-  max-width: 34ch;
-  margin: 0;
-  color: rgba(17, 21, 16, 0.66);
-  font-size: 0.9rem;
+.herd-carousel__note {
+  color: rgba(246, 241, 231, 0.78);
+  font-size: 0.82rem;
   font-weight: 300;
-  line-height: 1.6;
+  line-height: 1.4;
+}
+
+.herd-carousel__controls {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* Only once the script has taken over. The dots do not exist without it and the
+   arrows would be two dead buttons, so the whole row stays hidden until
+   data-herd-ready says there is something behind it. */
+.herd-carousel[data-herd-ready] .herd-carousel__controls {
+  display: flex;
+}
+
+.herd-carousel__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--cream);
+  background: transparent;
+  cursor: pointer;
+  transition: color 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.herd-carousel__arrow svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.herd-carousel__arrow:hover:not(:disabled),
+.herd-carousel__arrow:focus-visible:not(:disabled) {
+  border-color: var(--gold-light);
+  color: var(--gold-light);
+  background: rgba(241, 210, 139, 0.1);
+}
+
+/* :disabled states the resting colours as well as the dimmed ones. :hover
+   matches a disabled button in every engine, so without this the arrow would
+   light up on hover while doing nothing at all. */
+.herd-carousel__arrow:disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  background: transparent;
+  cursor: default;
+}
+
+.herd-carousel__dots {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.herd-carousel__dot {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 1px solid rgba(246, 241, 231, 0.45);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+/* The dot is 9px, well under the 24px minimum target size, so it is enlarged
+   with a transparent ring instead of by being drawn larger - which would put
+   four heavy dots under a photograph that is meant to be quiet. */
+.herd-carousel__dot::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+.herd-carousel__dot:hover {
+  border-color: var(--gold-light);
+}
+
+.herd-carousel__dot[aria-current='true'] {
+  border-color: var(--gold-light);
+  background: var(--gold-light);
+}
+
+/* ---- the script has taken over ---- */
+
+.herd-carousel[data-herd-ready] .herd-carousel__viewport {
+  overflow: hidden;
+  scroll-snap-type: none;
+  /* pan-y keeps the vertical page scroll working while claiming the horizontal
+     axis for the drag. Without it a finger dragged sideways would scroll the
+     page instead of the carousel. */
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.herd-carousel[data-herd-ready][data-herd-dragging] .herd-carousel__viewport {
+  cursor: grabbing;
+}
+
+/* The track follows the finger with no easing at all - any transition here is
+   added lag between the gesture and the picture. */
+.herd-carousel[data-herd-dragging] .herd-carousel__track {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .herd-carousel__track {
+    transition: none;
+  }
+}
+
+/* The hero stops being two columns at 1024px, not at the 860px that .split
+   uses, and the reason is worth writing down because it is not the heading.
+   The heading is 16ch and stays comfortably inside the text column at every
+   width, so measuring the breakpoint off it is misleading. The lead paragraph
+   is 54ch, which pins the text column at 556px; add the 240px narrowest
+   carousel and the gap, and the padded hero stops fitting both somewhere
+   around 1010px. Measured against production, the lead rewrapped at 980px and
+   below while the heading was still untouched - so 1024 is where the text
+   goes back to the full content width it has on the other four pages. */
+@media (max-width: 1024px) {
+  .page-hero--split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Stacked, the carousel takes the content column and no more: at 4:5 a 420px
+     cap keeps the hero from becoming taller than the screen that introduces
+     it. justify-self centres the carousel alone, because centring the grid
+     would shrink the text column to its own content and rewrap the lead -
+     the one thing this layout exists to avoid. */
+  .herd-carousel {
+    width: 100%;
+    max-width: 420px;
+    justify-self: center;
+  }
 }
 /* ---------- Shop ---------- */
 
@@ -4496,7 +4694,6 @@ body.page-body {
   .trust-grid,
   .quote-grid,
   .form-grid,
-  .farm-gallery,
   .site-footer__grid {
     grid-template-columns: minmax(0, 1fr);
   }

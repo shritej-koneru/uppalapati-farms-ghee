@@ -42,6 +42,8 @@ src/
   barcode.js        Code 128 encoder for the receipt's barcode. A real standard,
                     not decoration - see [The receipt](#the-receipt).
   jar3d.js          three.js scene for the GLB jar.
+  herd.js           The herd carousel in the farm page hero. Loaded by about.html
+                    only - see [The herd carousel](#the-herd-carousel).
   assets/
     logo-source.png Original artwork, 1254x1254. Source only — never deployed.
 
@@ -589,11 +591,12 @@ The nav mark scales 40px desktop / 32px below 700px. Both sizes are served from
 the single 200px file, and it is preloaded in the page head so it does not pop in
 after paint.
 
-## Farm photographs
+## The herd carousel
 
-The herd gallery on `/about.html` shows four real photographs of the cows. The
-originals are the client's own camera files and are **not** in the repo; the four
-files below are the only copies, so keep the source somewhere safe.
+The farm page hero carries a carousel of four real photographs of the cows, in the
+space that sat empty to the right of the heading. The originals are the client's own
+camera files and are **not** in the repo; the four files below are the only copies,
+so keep the source somewhere safe.
 
 | File | Source | Shape |
 |---|---|---|
@@ -609,11 +612,74 @@ dropping in a new file at the same path and keeping the `width`/`height`
 attributes in step, because those are what reserve the space before the file
 arrives.
 
-The three source shapes are all different, so `.farm-gallery__frame` fixes the
-box at 4:5 — the ratio the product photography already uses — and the image
-covers it. That crops 40% off the width of the Thirupati shot and 42% off the
-height of the tall one. If an animal's head ever ends up clipped, the fix is a
-`object-position` on that one tile, not a change to the grid.
+The three source shapes are all different, so `.herd-carousel__slide` fixes the box
+at 4:5 — the ratio the product photography already uses — and the image covers it.
+That crops 40% off the width of the Thirupati shot and 42% off the height of the
+tall one. If an animal's head ever ends up clipped, the fix is an `object-position`
+on `.herd-carousel__slide img`, not a change to the frame.
+
+### Why the heading cannot rewrap
+
+The hero was already a single column with a wide empty right half. Adding the
+carousel next to it looks like it must rewrap the text, but it does not, and the
+reason is worth preserving before anyone "tidies" the CSS:
+
+- The heading is `max-width: 16ch`, measured against **its own font size**, not
+  against its container. So its line breaks are independent of the column width.
+- The lead paragraph is `max-width: 54ch` and that one is *not* safe. It pins the
+  text column at 556px and is what decides the stacking breakpoint.
+- `.page-hero--split` therefore gives the text `minmax(0, 1fr)` and the carousel a
+  fixed `clamp(240px, 24vw, 340px)`. A `1fr` carousel would grow without limit on a
+  wide monitor, and since the frame is 4:5 that would make the hero taller and
+  taller; the clamp means the hero reaches its final height by about a 1280px
+  laptop and stops there.
+- `.page-hero--split` is a **modifier**, because `.page-hero` is shared by five
+  pages and the other four must stay single-column.
+
+The hero stops being two columns at **1024px, not the 860px `.split` uses** —
+because the binding constraint is the 54ch lead, not the 16ch heading. From about
+1010px down there is no longer room for 556px of text plus a 240px carousel plus
+the gap. Verified by diffing the rendered heading, lead, eyebrow, font sizes,
+max-widths and all four paddings against production at 18 widths from 360px to
+1920px: byte-identical at every one.
+
+### Two things in here that are load-bearing
+
+**`user-select: none` on `.herd-carousel__viewport`.** Without it a mouse
+press-and-drag across a photograph selects the caption printed over it, and the
+*next* press landing inside that selection starts a native drag-and-drop of the
+selected text. Chromium answers that with `pointercancel`, so the second and every
+later swipe with a mouse silently stopped moving the carousel for the rest of the
+session. Measured: six consecutive 200px drags gave three that worked and three
+cancelled with it off, six that worked with it on. `herd.js` also clears any
+selection on `pointerdown`, which covers a range made elsewhere on the page.
+
+**The carousel does not wrap.** The arrows disable at both ends, the autoplay
+stops at the last slide, and a drag past either end meets 35% resistance instead
+of moving. `count - 1` is a genuine stopping place, so there is no modulo in
+`herd.js`.
+
+### Behaviour
+
+Pointer Events, not scroll position, because the brief was swipe on a phone *and*
+drag on a laptop, and those are two different native behaviours — overflow
+scrolling gives you the first for free but no mouse drag at all. `touch-action:
+pan-y` keeps the vertical page scroll working while claiming the horizontal axis.
+
+- Click a dot, click an arrow, drag, swipe, or use ← → Home End on the focusable
+  viewport. Drag commits at 18% of the slide width.
+- Autoplays every 5.2s and pauses on hover, on focus, during a drag, and while the
+  tab is hidden. It stops at the last slide rather than looping.
+- Under `prefers-reduced-motion: reduce` there is no autoplay and no transition.
+- Without JavaScript it degrades to a scrollable strip of all four photographs
+  with no controls — the controls are hidden in CSS until `herd.js` sets
+  `data-herd-ready`, so a visitor never meets a dead arrow.
+
+Captions are overlaid on the photograph behind a gradient scrim, so the contrast
+comes from the panel rather than from the photo. Measured by compositing the
+scrim over the actual pixels of all four images and taking the lightest pixel
+found under each line of text: name 9.77–11.04:1, note 8.07–8.29:1, against a WCAG
+AA requirement of 4.5:1.
 
 `about.html` also carries the farm's location. It is a Google Maps short link,
 which is worth knowing about before anyone assumes it is stable: short links can
