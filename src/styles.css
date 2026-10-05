@@ -3507,21 +3507,11 @@ body.page-body {
   fill: currentColor;
 }
 
-.herd-carousel__arrow:hover:not(:disabled),
-.herd-carousel__arrow:focus-visible:not(:disabled) {
+.herd-carousel__arrow:hover,
+.herd-carousel__arrow:focus-visible {
   border-color: var(--gold-light);
   color: var(--gold-light);
   background: rgba(241, 210, 139, 0.1);
-}
-
-/* :disabled states the resting colours as well as the dimmed ones. :hover
-   matches a disabled button in every engine, so without this the arrow would
-   light up on hover while doing nothing at all. */
-.herd-carousel__arrow:disabled {
-  border-color: var(--line);
-  color: var(--muted);
-  background: transparent;
-  cursor: default;
 }
 
 .herd-carousel__dots {

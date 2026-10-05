@@ -36,7 +36,12 @@ export default [
         crypto: 'readonly',
         fetch: 'readonly',
         URL: 'readonly',
-        Blob: 'readonly'
+        Blob: 'readonly',
+        /* herd.js reads the track's own transition duration out of the
+           stylesheet rather than keeping a copy of it as a number, so that
+           changing the movement in the CSS cannot leave the carousel waiting a
+           different length of time than the movement actually takes. */
+        getComputedStyle: 'readonly'
       }
     },
     rules: {

@@ -654,10 +654,50 @@ session. Measured: six consecutive 200px drags gave three that worked and three
 cancelled with it off, six that worked with it on. `herd.js` also clears any
 selection on `pointerdown`, which covers a range made elsewhere on the page.
 
-**The carousel does not wrap.** The arrows disable at both ends, the autoplay
-stops at the last slide, and a drag past either end meets 35% resistance instead
-of moving. `count - 1` is a genuine stopping place, so there is no modulo in
-`herd.js`.
+**The carousel loops.** It did not at first: the arrows used to disable at both
+ends, the autoplay used to stop at the last slide, and a drag past either end used
+to meet 35% resistance. That was a deliberate call — a hero that silently jumps
+from the last cow back to the first reads as disorienting — and the client asked
+for the opposite, which is the right call for a hero that people watch rather
+than read.
+
+A finite track cannot loop by itself. There is nothing to stand to the right of the
+last photograph, so slide 0 arriving would mean sliding the whole strip back across
+the other three — four slides of travel for a one-slide step. So the track gets a
+**spare copy at each end**: a copy of the last slide at the front and a copy of the
+first at the back, and those two do the turning.
+
+The copies are transient, and everything downstream is written in terms of the real
+slides. The move runs onto a copy, and when it lands the track is put back onto the
+real slide with the transition off — invisible, because a copy and its original are
+the same picture in the same box. State (dots, announcement, autoplay, the loop
+itself) never knows the difference, so a click landing inside that half second is
+paid off first and the next step is taken from the real slide.
+
+Two things about the copies are deliberate:
+
+- Their images are `loading="eager"` with `fetchpriority="low"`. A copy is on screen
+  the instant the loop uses it, and a lazy image would put a frame of empty
+  background there. The URLs are the ones already being requested, so this is not
+  extra weight, only earlier — and the low priority keeps either of them from
+  competing with the photograph that decides how fast the page paints.
+- They have `data-herd-slide` **removed**. `cloneNode` copies it, and leaving it on
+  would quietly double the answer to any later
+  `querySelectorAll('[data-herd-slide]')` — including this file's own, if it were
+  ever run twice.
+
+With the loop there are no ends, so **the arrows are never disabled** and the
+`:disabled` rules are gone from the CSS. Dragging is the same everywhere now: the
+loop can fill a whole slide of movement in either direction, and only an overshoot
+past *that* is damped, so the track cannot run off into empty space.
+
+The wait before the copy is swapped out is read out of the stylesheet with
+`getComputedStyle`, not kept as a number in `herd.js`. That is not tidiness: the
+wait is a backstop for the transition's own `transitionend`, so a constant that
+drifted out of step with the CSS would not fail safely — a longer move than the code
+expected would get its jump part-way through and be visibly cut short. Verified by
+slowing the CSS to 3s and confirming the swap happens at ~3.1s rather than at the
+660ms the old constant would have used.
 
 ### Behaviour
 
@@ -667,9 +707,12 @@ scrolling gives you the first for free but no mouse drag at all. `touch-action:
 pan-y` keeps the vertical page scroll working while claiming the horizontal axis.
 
 - Click a dot, click an arrow, drag, swipe, or use ← → Home End on the focusable
-  viewport. Drag commits at 18% of the slide width.
-- Autoplays every 5.2s and pauses on hover, on focus, during a drag, and while the
-  tab is hidden. It stops at the last slide rather than looping.
+  viewport. Drag commits at 18% of the slide width. Every one of those routes
+  loops, and a dot takes the short way round rather than the long one.
+- Autoplays every 5.2s and loops, pausing on hover, on focus, during a drag, and
+  while the tab is hidden. The hover check is `pointerType !== 'touch'`, because a
+  finger fires `pointerenter` on touch-down and would otherwise stop the carousel
+  the instant anyone swiped it.
 - Under `prefers-reduced-motion: reduce` there is no autoplay and no transition.
 - Without JavaScript it degrades to a scrollable strip of all four photographs
   with no controls — the controls are hidden in CSS until `herd.js` sets
