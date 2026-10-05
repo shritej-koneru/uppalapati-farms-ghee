@@ -3355,6 +3355,66 @@ body.page-body {
   color: var(--ink);
 }
 
+/* ---------- The herd gallery (/about.html) ---------- */
+
+/* The four photographs arrived in three different shapes - a 4:3 landscape, a
+   square and one tall phone portrait - so the frame fixes the ratio and the
+   image covers it. 4:5 is the ratio the product photography on the shop page
+   already uses, so the two read as the same kind of picture. */
+.farm-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(20px, 2.6vw, 34px);
+  margin: clamp(40px, 5vh, 64px) 0 0;
+}
+
+.farm-gallery__item {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.farm-gallery__frame {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  background: var(--night-soft);
+  border: 1px solid rgba(17, 21, 16, 0.12);
+}
+
+.farm-gallery__frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* cover, not contain: every frame is one shape and no photograph is, so the
+     odd one out is cropped rather than letterboxed with dead bands. */
+  object-fit: cover;
+  object-position: center;
+}
+
+.farm-gallery__caption {
+  display: grid;
+  gap: 4px;
+}
+
+.farm-gallery__name {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.16rem, 1.6vw, 1.42rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.farm-gallery__note {
+  max-width: 34ch;
+  margin: 0;
+  color: rgba(17, 21, 16, 0.66);
+  font-size: 0.9rem;
+  font-weight: 300;
+  line-height: 1.6;
+}
 /* ---------- Shop ---------- */
 
 .shop-head {
@@ -3960,6 +4020,45 @@ body.page-body {
   height: 17px;
   fill: currentColor;
 }
+.wa-panel__actions {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.map-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  min-height: 52px;
+  padding: 0 28px;
+  border: 1px solid var(--wa-fill);
+  color: var(--wa-fill);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease,
+    transform 180ms var(--ease-out);
+}
+
+/* Same inversion as the checkout button: gold ring at rest, gold fill on top. */
+.map-button:hover,
+.map-button:focus-visible {
+  border-color: #000;
+  color: var(--wa-ink);
+  background: var(--wa-fill);
+  transform: translateY(-2px);
+}
+
+.map-button svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
 
 .cart-dialog__wa {
   width: 100%;
@@ -4397,6 +4496,7 @@ body.page-body {
   .trust-grid,
   .quote-grid,
   .form-grid,
+  .farm-gallery,
   .site-footer__grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -4407,7 +4507,8 @@ body.page-body {
 
   .shop-card__actions .checkout-button,
   .shop-card__actions .text-link,
-  .wa-button {
+  .wa-button,
+  .map-button {
     width: 100%;
   }
 

@@ -588,3 +588,33 @@ the plate is invisible.
 The nav mark scales 40px desktop / 32px below 700px. Both sizes are served from
 the single 200px file, and it is preloaded in the page head so it does not pop in
 after paint.
+
+## Farm photographs
+
+The herd gallery on `/about.html` shows four real photographs of the cows. The
+originals are the client's own camera files and are **not** in the repo; the four
+files below are the only copies, so keep the source somewhere safe.
+
+| File | Source | Shape |
+|---|---|---|
+| `public/media/farm-thirupati.jpg` | `Thirupati Amma and Calf.png` | 1200×900 |
+| `public/media/farm-gowri.jpg` | `Gowri and Calf in the Barn.png` | 1200×1004 |
+| `public/media/farm-laxmi.jpg` | `Laxmi Resting in the Cow Shed.png` | 1200×1200 |
+| `public/media/farm-herd.jpg` | a WhatsApp photo, unnamed | 554×1200 |
+
+Each was re-encoded to JPEG at quality 82 with EXIF stripped, longest edge 1200.
+That took the four from 7.2 MB to 775 KB. They are ordinary photos with no source
+artwork, so unlike the logo there is nothing to regenerate — replacing one means
+dropping in a new file at the same path and keeping the `width`/`height`
+attributes in step, because those are what reserve the space before the file
+arrives.
+
+The three source shapes are all different, so `.farm-gallery__frame` fixes the
+box at 4:5 — the ratio the product photography already uses — and the image
+covers it. That crops 40% off the width of the Thirupati shot and 42% off the
+height of the tall one. If an animal's head ever ends up clipped, the fix is a
+`object-position` on that one tile, not a change to the grid.
+
+`about.html` also carries the farm's location. It is a Google Maps short link,
+which is worth knowing about before anyone assumes it is stable: short links can
+be retired, and the URL will then land somewhere unhelpful rather than 404.
