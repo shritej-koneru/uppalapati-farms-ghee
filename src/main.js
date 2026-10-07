@@ -333,10 +333,10 @@ function frame(now) {
     const lowPower = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || 
                      ('deviceMemory' in navigator && navigator.deviceMemory <= 2);
     const deviceConstrained = isMobile || isCoarse || lowPower;
-    const lerpFactor = deviceConstrained ? 0.7 : 0.25;
+    const lerpFactor = deviceConstrained ? 0.15 : 0.08;
     let smoothed = current + (target - current) * lerpFactor;
-    if (Math.abs(smoothed - target) < 0.002) smoothed = target;
-    const seekThreshold = deviceConstrained ? MIN_SEEK_STEP * 2 : MIN_SEEK_STEP;
+    if (Math.abs(smoothed - target) < 0.0005) smoothed = target;
+    const seekThreshold = deviceConstrained ? MIN_SEEK_STEP * 0.5 : MIN_SEEK_STEP * 0.3;
     if (Math.abs(smoothed - lastSeekTime) >= seekThreshold) {
       lastSeekTime = smoothed;
       try {
@@ -344,7 +344,8 @@ function frame(now) {
       } catch {
         /* seeking before metadata is ready */
       }
-    } else {
+    }
+    if (Math.abs(target - lastSeekTime) < MIN_SEEK_STEP && Math.abs(target - lastSeekTime) > 0) {
       lastSeekTime = target;
       try {
         processVideo.currentTime = target;
@@ -385,8 +386,7 @@ function selectVideoSource() {
   // Use lighter encode on phones/tablets to reduce GPU/decoder load.
   const lowPower = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || 
                    ('deviceMemory' in navigator && navigator.deviceMemory <= 2);
-  const useLight = window.innerWidth <= PHONE_WIDTH || lowPower;
-  setVideoSource(useLight ? filmSources[0].src : filmSources[1].src);
+  setVideoSource(filmSources[0].src);
 }
 
 function handleVideoMetadata() {
