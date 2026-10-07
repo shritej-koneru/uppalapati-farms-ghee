@@ -384,8 +384,6 @@ function setVideoSource(source) {
 
 function selectVideoSource() {
   // Use lighter encode on phones/tablets to reduce GPU/decoder load.
-  const lowPower = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || 
-                   ('deviceMemory' in navigator && navigator.deviceMemory <= 2);
   setVideoSource(filmSources[0].src);
 }
 
