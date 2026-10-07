@@ -56,7 +56,7 @@ const filmSources = [
 const PHONE_WIDTH = 768;
 // The film is encoded 24fps. Seeking to a time that has not moved at least one
 // frame costs a full seek + decode for no visible gain, so skip those.
-const MIN_SEEK_STEP = 1 / 60;
+const MIN_SEEK_STEP = 1 / 24;
 
 let scrollFrame = 0;
 let resizeTimer = 0;
@@ -325,19 +325,23 @@ function frame(now) {
   if (seekTarget >= 0 && videoDuration > 0) {
     const target = clamp(seekTarget, 0, videoDuration - 0.001);
     seekTarget = -1;
-    // Map scroll straight to time with no easing. An exponential chase here
-    // (the old displayTime lerp) always trailed the scroll position, so the
-    // film accelerated to catch up on fast scrolls and then coasted to a stop
-    // when scrolling stopped. Locking 1:1 removes both artefacts.
-    // Skipping sub-frame moves keeps the decoder from being starved by seeks
-    // that could not change the displayed frame anyway.
-    if (Math.abs(target - lastSeekTime) > 0.001) {
-      lastSeekTime = target;
+    // Slight lerp to avoid micro-stutters when scroll stops abruptly while
+    // seeking keyframes. Keeps it responsive on fast scrolls.
+    const current = lastSeekTime < 0 ? target : lastSeekTime;
+    let smoothed = current + (target - current) * 0.25;
+    if (Math.abs(smoothed - target) < 0.0005) smoothed = target;
+    if (Math.abs(smoothed - lastSeekTime) >= MIN_SEEK_STEP) {
+      lastSeekTime = smoothed;
       try {
-        processVideo.currentTime = target;
+        processVideo.currentTime = smoothed;
       } catch {
         /* seeking before metadata is ready */
       }
+    } else if (Math.abs(target - lastSeekTime) >= MIN_SEEK_STEP * 0.5) {
+      lastSeekTime = target;
+      try {
+        processVideo.currentTime = target;
+      } catch {}
     }
   }
   // The jar renders from the page's existing animation frame rather than a
