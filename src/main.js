@@ -341,7 +341,9 @@ function frame(now) {
       lastSeekTime = target;
       try {
         processVideo.currentTime = target;
-      } catch {}
+      } catch {
+        /* seeking before metadata is ready */
+      }
     }
   }
   // The jar renders from the page's existing animation frame rather than a
