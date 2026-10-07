@@ -54,9 +54,8 @@ const filmSources = [
 // Phones stay on the light encode regardless of pixel density - a 720p file
 // in a ~390px-wide slot is already oversampled.
 const PHONE_WIDTH = 768;
-// The film is encoded 24fps. Seeking to a time that has not moved at least one
-// frame costs a full seek + decode for no visible gain, so skip those.
-const MIN_SEEK_STEP = 1 / 24;
+// The film is encoded 24fps. Removed thresholding for more direct scroll sync.
+const MIN_SEEK_STEP = 1 / 24; // Keep for potential future use - not currently used in seek logic
 
 let scrollFrame = 0;
 let resizeTimer = 0;
