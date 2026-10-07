@@ -329,17 +329,22 @@ function frame(now) {
     // seeking keyframes. Keeps it responsive on fast scrolls.
     const current = lastSeekTime < 0 ? target : lastSeekTime;
     const isMobile = window.innerWidth <= PHONE_WIDTH;
-    const lerpFactor = isMobile ? 0.4 : 0.25;
+    const isCoarse = window.matchMedia('(pointer: coarse)').matches;
+    const lowPower = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || 
+                     ('deviceMemory' in navigator && navigator.deviceMemory <= 2);
+    const deviceConstrained = isMobile || isCoarse || lowPower;
+    const lerpFactor = deviceConstrained ? 0.7 : 0.25;
     let smoothed = current + (target - current) * lerpFactor;
-    if (Math.abs(smoothed - target) < 0.0003) smoothed = target;
-    if (Math.abs(smoothed - lastSeekTime) >= (isMobile ? MIN_SEEK_STEP * 0.8 : MIN_SEEK_STEP)) {
+    if (Math.abs(smoothed - target) < 0.002) smoothed = target;
+    const seekThreshold = deviceConstrained ? MIN_SEEK_STEP * 2 : MIN_SEEK_STEP;
+    if (Math.abs(smoothed - lastSeekTime) >= seekThreshold) {
       lastSeekTime = smoothed;
       try {
         processVideo.currentTime = smoothed;
       } catch {
         /* seeking before metadata is ready */
       }
-    } else if (Math.abs(target - lastSeekTime) >= MIN_SEEK_STEP * 0.4) {
+    } else {
       lastSeekTime = target;
       try {
         processVideo.currentTime = target;
@@ -377,12 +382,11 @@ function setVideoSource(source) {
 }
 
 function selectVideoSource() {
-  // Phones take the light encode; everything else takes the best available.
-  // With only two tiers there is no width to reason about beyond that split -
-  // the device-pixel check that a third tier needed was what justified
-  // upscaling on wide screens, and measurement showed that upscale beats
-  // every 1440p encode that fits under the Pages file-size cap.
-  setVideoSource(window.innerWidth <= PHONE_WIDTH ? filmSources[0].src : filmSources[1].src);
+  // Use lighter encode on phones/tablets to reduce GPU/decoder load.
+  const lowPower = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || 
+                   ('deviceMemory' in navigator && navigator.deviceMemory <= 2);
+  const useLight = window.innerWidth <= PHONE_WIDTH || lowPower;
+  setVideoSource(useLight ? filmSources[0].src : filmSources[1].src);
 }
 
 function handleVideoMetadata() {
