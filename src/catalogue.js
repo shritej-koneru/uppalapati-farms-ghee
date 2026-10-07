@@ -46,8 +46,8 @@ export const cartStorageKey = 'uppalapati-farms-cart';
 const productPhotos = {
   'half-litre': '/media/ghee-half-litre.jpg',
   'one-litre': '/media/ghee-1litre.jpg',
-  butter: '/media/butter-500g.jpg',
-  curd: '/media/curd-800g.jpg',
+  butter: '/media/butter.jpg',
+  curd: '/media/pot-curd.jpg',
 };
 
 const productArtwork = {
