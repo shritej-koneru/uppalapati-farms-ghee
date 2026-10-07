@@ -336,22 +336,11 @@ function frame(now) {
     const lerpFactor = deviceConstrained ? 0.15 : 0.08;
     let smoothed = current + (target - current) * lerpFactor;
     if (Math.abs(smoothed - target) < 0.0005) smoothed = target;
-    const seekThreshold = deviceConstrained ? MIN_SEEK_STEP * 0.5 : MIN_SEEK_STEP * 0.3;
-    if (Math.abs(smoothed - lastSeekTime) >= seekThreshold) {
-      lastSeekTime = smoothed;
-      try {
-        processVideo.currentTime = smoothed;
-      } catch {
-        /* seeking before metadata is ready */
-      }
-    }
-    if (Math.abs(target - lastSeekTime) < MIN_SEEK_STEP && Math.abs(target - lastSeekTime) > 0) {
+    try {
+      processVideo.currentTime = target;
       lastSeekTime = target;
-      try {
-        processVideo.currentTime = target;
-      } catch {
-        /* seeking before metadata is ready */
-      }
+    } catch {
+      /* seeking before metadata is ready */
     }
   }
   // The jar renders from the page's existing animation frame rather than a
