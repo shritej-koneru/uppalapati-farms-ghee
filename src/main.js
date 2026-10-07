@@ -328,16 +328,18 @@ function frame(now) {
     // Slight lerp to avoid micro-stutters when scroll stops abruptly while
     // seeking keyframes. Keeps it responsive on fast scrolls.
     const current = lastSeekTime < 0 ? target : lastSeekTime;
-    let smoothed = current + (target - current) * 0.25;
-    if (Math.abs(smoothed - target) < 0.0005) smoothed = target;
-    if (Math.abs(smoothed - lastSeekTime) >= MIN_SEEK_STEP) {
+    const isMobile = window.innerWidth <= PHONE_WIDTH;
+    const lerpFactor = isMobile ? 0.4 : 0.25;
+    let smoothed = current + (target - current) * lerpFactor;
+    if (Math.abs(smoothed - target) < 0.0003) smoothed = target;
+    if (Math.abs(smoothed - lastSeekTime) >= (isMobile ? MIN_SEEK_STEP * 0.8 : MIN_SEEK_STEP)) {
       lastSeekTime = smoothed;
       try {
         processVideo.currentTime = smoothed;
       } catch {
         /* seeking before metadata is ready */
       }
-    } else if (Math.abs(target - lastSeekTime) >= MIN_SEEK_STEP * 0.5) {
+    } else if (Math.abs(target - lastSeekTime) >= MIN_SEEK_STEP * 0.4) {
       lastSeekTime = target;
       try {
         processVideo.currentTime = target;

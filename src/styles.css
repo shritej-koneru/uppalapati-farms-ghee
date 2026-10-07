@@ -287,6 +287,13 @@ body.is-ready .loading-screen {
   will-change: transform;
 }
 
+@media (max-width: 768px) {
+  .journey__video {
+    object-position: 50% 30%;
+    transform: scale(1.08);
+  }
+}
+
 .journey__video.is-unavailable {
   opacity: 0;
 }
@@ -4607,6 +4614,11 @@ body.page-body {
 }
 
 @media (max-width: 420px) {
+  .journey__video {
+    object-position: 52% 20%;
+    transform: scale(1.12);
+  }
+
   .journey__actions {
     align-items: flex-start;
     flex-direction: column;
