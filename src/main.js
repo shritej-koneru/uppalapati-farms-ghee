@@ -56,7 +56,7 @@ const filmSources = [
 const PHONE_WIDTH = 768;
 // The film is encoded 24fps. Seeking to a time that has not moved at least one
 // frame costs a full seek + decode for no visible gain, so skip those.
-const MIN_SEEK_STEP = 1 / 24;
+const MIN_SEEK_STEP = 1 / 60;
 
 let scrollFrame = 0;
 let resizeTimer = 0;
@@ -331,7 +331,7 @@ function frame(now) {
     // when scrolling stopped. Locking 1:1 removes both artefacts.
     // Skipping sub-frame moves keeps the decoder from being starved by seeks
     // that could not change the displayed frame anyway.
-    if (Math.abs(target - lastSeekTime) >= MIN_SEEK_STEP) {
+    if (Math.abs(target - lastSeekTime) > 0.001) {
       lastSeekTime = target;
       try {
         processVideo.currentTime = target;
